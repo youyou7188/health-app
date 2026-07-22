@@ -139,6 +139,7 @@
     .btn-green  { background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; box-shadow:0 3px 12px rgba(34,197,94,0.35); }
     .btn-orange { background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; box-shadow:0 3px 12px rgba(249,115,22,0.35); }
     .btn-amber  { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; }
+    .btn-purple { background:linear-gradient(135deg,#a855f7,#8b5cf6); color:#fff; }
     .btn-danger { background:linear-gradient(135deg,#f43f5e,#e11d48); color:#fff; }
 
     /* FORM */
@@ -168,11 +169,9 @@
     .fill-green  { background:linear-gradient(90deg,#4ade80,#22c55e); }
     .fill-amber  { background:linear-gradient(90deg,#fbbf24,#f59e0b); }
     .fill-orange { background:linear-gradient(90deg,#fb923c,#f97316); }
-    .fill-purple { background:linear-gradient(90deg,#c084fc,#a855f7); }
-    .fill-pink   { background:linear-gradient(90deg,#f472b6,#ec4899); }
 
-    /* MACRO PILLS */
-    .macro-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+    /* MACRO PILLS (PFC Only) */
+    .macro-grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
     .macro-pill { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--r-md); padding:8px 5px; text-align:center; }
     .macro-pill-label { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:3px; }
     .macro-pill-value { font-size:0.88rem; font-weight:800; margin-bottom:3px; }
@@ -302,7 +301,6 @@
     .chip-amber  { background:rgba(245,158,11,0.12);  color:var(--amber);  border:1px solid rgba(245,158,11,0.25); }
     .chip-purple { background:rgba(168,85,247,0.12);  color:var(--purple); border:1px solid rgba(168,85,247,0.25); }
     .chip-orange { background:rgba(249,115,22,0.12);  color:var(--orange); border:1px solid rgba(249,115,22,0.25); }
-    .chip-pink   { background:rgba(236,72,153,0.12);  color:var(--pink);   border:1px solid rgba(236,72,153,0.25); }
 
     /* EMPTY STATE */
     .empty-state { text-align:center; padding:26px 16px; color:var(--text-3); font-size:0.83rem; line-height:1.6; }
@@ -348,11 +346,11 @@
     }
     .unit-btn:hover { background:rgba(56,189,248,0.12); border-color:rgba(56,189,248,0.3); color:var(--cyan); }
 
-    /* PFC PREVIEW */
-    .pfc-auto-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin-bottom:10px; }
-    .pfc-auto-cell { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--r-md); padding:6px 3px; text-align:center; }
-    .pfc-auto-label { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
-    .pfc-auto-val   { font-size:0.83rem; font-weight:800; }
+    /* PFC PREVIEW (PFC 4列) */
+    .pfc-auto-grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:10px; }
+    .pfc-auto-cell { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--r-md); padding:7px 4px; text-align:center; }
+    .pfc-auto-label { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
+    .pfc-auto-val   { font-size:0.88rem; font-weight:800; }
 
     /* FOOD SELECTED CARD */
     .food-selected-card {
@@ -592,7 +590,9 @@
         <div class="calorie-ring-sub" style="margin-top:4px;">達成率 <strong id="dash-cal-pct" style="color:var(--orange);">0%</strong></div>
       </div>
     </div>
-    <div class="macro-grid">
+
+    <!-- PFC 3 PILS ONLY -->
+    <div class="macro-grid-3">
       <div class="macro-pill">
         <div class="macro-pill-label" style="color:var(--green);">P タンパク</div>
         <div class="macro-pill-value" id="dash-p-val" style="color:var(--green);">0g</div>
@@ -610,12 +610,6 @@
         <div class="macro-pill-value" id="dash-c-val" style="color:var(--cyan);">0g</div>
         <div class="progress-track" style="margin-bottom:4px;height:4px;"><div id="dash-c-bar" class="progress-fill fill-cyan" style="width:0%"></div></div>
         <div class="macro-pill-sub">目標 <span id="dash-c-tgt">250g</span></div>
-      </div>
-      <div class="macro-pill">
-        <div class="macro-pill-label" style="color:var(--pink);">Fib 食物繊維</div>
-        <div class="macro-pill-value" id="dash-fib-val" style="color:var(--pink);">0g</div>
-        <div class="progress-track" style="margin-bottom:4px;height:4px;"><div id="dash-fib-bar" class="progress-fill fill-pink" style="width:0%"></div></div>
-        <div class="macro-pill-sub">目標 <span>20g</span></div>
       </div>
     </div>
   </div>
@@ -840,13 +834,6 @@
         </div>
         <div class="progress-track" style="height:5px;"><div id="meal-c-bar" class="progress-fill fill-cyan" style="width:0%;"></div></div>
       </div>
-      <div>
-        <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:4px;">
-          <span style="color:var(--pink);font-weight:700;">Fib — 食物繊維</span>
-          <span><strong id="meal-fib-num">0g</strong> / <span>20g</span></span>
-        </div>
-        <div class="progress-track" style="height:5px;"><div id="meal-fib-bar" class="progress-fill fill-pink" style="width:0%;"></div></div>
-      </div>
     </div>
   </div>
 
@@ -1066,8 +1053,11 @@
     </div>
     <div class="settings-tabs">
       <button class="settings-tab-btn active" data-panel="panel-goals">🎯 目標PFC (スマート連動)</button>
+      <button class="settings-tab-btn" data-panel="panel-custom-foods">🍳 マイ登録食品</button>
       <button class="settings-tab-btn" data-panel="panel-backup">💾 バックアップ</button>
     </div>
+
+    <!-- GOALS PANEL -->
     <div id="panel-goals" class="settings-panel active">
       <div class="input-grid-2" style="margin-bottom:8px;">
         <div class="form-group"><label class="form-label">体重 kg</label><input type="number" id="prf-weight" class="form-control" placeholder="65"></div>
@@ -1126,6 +1116,32 @@
         <i data-lucide="save" style="width:15px;height:15px;"></i> 目標を保存
       </button>
     </div>
+
+    <!-- CUSTOM FOODS PANEL -->
+    <div id="panel-custom-foods" class="settings-panel">
+      <div style="font-size:0.78rem;color:var(--text-2);margin-bottom:10px;">よく食べるマイ料理やプロテインを自由に登録できます。</div>
+      <form id="create-custom-food-form">
+        <div class="form-group">
+          <label class="form-label">料理・食品名</label>
+          <input type="text" id="cust-food-name" class="form-control" placeholder="例: 特製プロテインスムージー" required>
+        </div>
+        <div class="input-grid-2" style="margin-bottom:8px;">
+          <div class="form-group"><label class="form-label" style="color:var(--orange);">1食カロリー kcal</label><input type="number" id="cust-food-cal" class="form-control" placeholder="250" required></div>
+          <div class="form-group"><label class="form-label" style="color:var(--green);">P g</label><input type="number" step="0.1" id="cust-food-p" class="form-control" placeholder="30.0" required></div>
+        </div>
+        <div class="input-grid-2" style="margin-bottom:10px;">
+          <div class="form-group"><label class="form-label" style="color:var(--amber);">F g</label><input type="number" step="0.1" id="cust-food-f" class="form-control" placeholder="5.0" required></div>
+          <div class="form-group"><label class="form-label" style="color:var(--cyan);">C g</label><input type="number" step="0.1" id="cust-food-c" class="form-control" placeholder="20.0" required></div>
+        </div>
+        <button type="submit" class="btn btn-purple btn-lg" style="margin-bottom:14px;">
+          <i data-lucide="plus" style="width:15px;height:15px;"></i> マイ料理を登録する
+        </button>
+      </form>
+      <div class="section-title">登録済みマイ料理</div>
+      <div id="custom-food-list"></div>
+    </div>
+
+    <!-- BACKUP PANEL -->
     <div id="panel-backup" class="settings-panel">
       <div style="display:flex;flex-direction:column;gap:10px;">
         <button id="export-btn" class="btn btn-ghost btn-lg"><i data-lucide="download" style="width:15px;height:15px;"></i> JSONバックアップ出力</button>
@@ -1179,17 +1195,18 @@
       <div class="pending-total-row">
         <span class="pending-total-label">合計</span>
         <span class="pending-total-val" id="pending-total-cal">0 kcal</span>
-        <span style="font-size:0.72rem;color:var(--text-3);">P<span id="pending-total-p">0</span> F<span id="pending-total-f">0</span> C<span id="pending-total-c">0</span> Fib<span id="pending-total-fib">0</span></span>
+        <span style="font-size:0.72rem;color:var(--text-3);">P<span id="pending-total-p">0</span> F<span id="pending-total-f">0</span> C<span id="pending-total-c">0</span></span>
       </div>
     </div>
 
     <div class="form-group">
-      <label class="form-label">食材を検索（★登録食材・キノコ・プロテイン等）</label>
+      <label class="form-label">食材を検索（マイ料理・ベースブレッド・プロテイン等）</label>
       <div class="autocomplete-wrap">
-        <input type="text" id="food-search" class="form-control" placeholder="例: ベースブレッド、卵、サラダチキン… " autocomplete="off">
+        <input type="text" id="food-search" class="form-control" placeholder="例: マイ料理、ベースブレッド、卵… " autocomplete="off">
         <div id="food-dropdown" class="food-dropdown hidden"></div>
       </div>
     </div>
+
     <div id="food-selected-card" class="food-selected-card hidden">
       <div class="food-selected-name" id="food-selected-name"></div>
       <div class="food-selected-meta" id="food-selected-meta"></div>
@@ -1209,12 +1226,13 @@
         </button>
       </div>
     </div>
-    <div class="pfc-auto-grid">
+
+    <!-- PFC 4 CELLS (kcal, P, F, C) -->
+    <div class="pfc-auto-grid-4">
       <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--orange);">kcal</div><div class="pfc-auto-val" id="pfc-cal-preview" style="color:var(--orange);">—</div></div>
       <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--green);">P(g)</div><div class="pfc-auto-val" id="pfc-p-preview" style="color:var(--green);">—</div></div>
       <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--amber);">F(g)</div><div class="pfc-auto-val" id="pfc-f-preview" style="color:var(--amber);">—</div></div>
       <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--cyan);">C(g)</div><div class="pfc-auto-val" id="pfc-c-preview" style="color:var(--cyan);">—</div></div>
-      <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--pink);">Fib(g)</div><div class="pfc-auto-val" id="pfc-fib-preview" style="color:var(--pink);">—</div></div>
     </div>
     <button id="add-to-list-btn" class="btn btn-amber btn-lg" style="margin-bottom:10px;">
       <i data-lucide="plus" style="width:16px;height:16px;"></i>
