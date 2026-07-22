@@ -1,8 +1,13 @@
 /* ============================================================
-   FitPulse — app.js  (完全オフライン版)
+   FitPulse — app.js  (商用クオリティ・完成版)
+   - 🍱 食事ログの朝・昼・夕・間食グループ分け表示
+   - 📅 過去日付の運動・食事入力機能
+   - 📱 PWAインストールバナー表示サポート
+   - 🍄 超絶拡充 食材DB（居酒屋・魚介・練り物・調味料・プロテイン飲料・ナッツ・果物全網羅）
+   - ⚡ 目標PFC設定のスマート相互連動計算 (カロリー+2項目 ➔ 残り1項目を自動補完)
+   - 🌿 食物繊維（Fib）およびビタミン関連データのビジュアルプログレス
    - ベースブレッド公式全8種 栄養成分完全修正版（2026最新公式数値）
    - 初回プロファイル入力（未設定時にダイアログ自動表示）
-   - 食材DB（定番単位設定含む）
    - 種目DB（筋トレ250+種目 + 有酸素運動）
    - ⚡ 前回値の1タップコピー機能
    - 📈 週平均・月平均体重トレンド算出
@@ -17,83 +22,158 @@
 // ─── Storage Keys ───────────────────────────────────────────
 const LS = { WORKOUTS:'fp_workouts', MEALS:'fp_meals', INBODY:'fp_inbody', PROFILE:'fp_profile', CUSTOM_EX:'fp_custom_ex' };
 
-// ─── FOOD DATABASE (ベースブレッド全種は公式1袋80g基準から100g正確逆算) ─────────────────
+// ─── FOOD DATABASE ───────────────────────────────────────────
 const FOOD_DB_RAW = [
-  // [商品名, 100gカロリー, 100gP, 100gF, 100gC, [[単位名, グラム数]]]
-  ['ベースブレッド プレーン',250.0,16.9,8.8,28.1,[['1袋(80g)',80]]],
-  ['ベースブレッド チョコレート',332.5,17.0,11.4,44.3,[['1袋(80g)',80]]],
-  ['ベースブレッド メープル',313.8,16.9,10.8,41.5,[['1袋/2個(80g)',80]]],
-  ['ベースブレッド シナモン',325.0,17.0,11.8,33.9,[['1袋/2個(80g)',80]]],
-  ['ベースブレッド カレー',338.8,17.0,10.4,37.5,[['1袋(80g)',80]]],
-  ['ベースブレッド ミニ食パン プレーン',286.3,16.9,8.9,37.8,[['1袋/2枚(80g)',80]]],
-  ['ベースブレッド ミニ食パン レーズン',351.3,16.9,9.3,47.6,[['1袋/2枚(80g)',80]]],
-  ['ベースブレッド リッチ',276.3,16.9,9.0,33.0,[['1袋(80g)',80]]],
+  // 🍞 ベースブレッド全種
+  ['ベースブレッド プレーン',250.0,16.9,8.8,28.1,[['1袋(80g)',80]],4.0],
+  ['ベースブレッド チョコレート',332.5,17.0,11.4,44.3,[['1袋(80g)',80]],4.1],
+  ['ベースブレッド メープル',313.8,16.9,10.8,41.5,[['1袋/2個(80g)',80]],4.1],
+  ['ベースブレッド シナモン',325.0,17.0,11.8,33.9,[['1袋/2個(80g)',80]],4.1],
+  ['ベースブレッド カレー',338.8,17.0,10.4,37.5,[['1袋(80g)',80]],4.1],
+  ['ベースブレッド ミニ食パン プレーン',286.3,16.9,8.9,37.8,[['1袋/2枚(80g)',80]],4.0],
+  ['ベースブレッド ミニ食パン レーズン',351.3,16.9,9.3,47.6,[['1袋/2枚(80g)',80]],4.0],
+  ['ベースブレッド リッチ',276.3,16.9,9.0,33.0,[['1袋(80g)',80]],4.2],
 
-  ['鶏卵（全卵）',151,12.3,10.3,0.3,[['M1個(約50g)',50],['L1個(約60g)',60],['2個',100]]],
-  ['ゆで卵',151,12.9,10.0,0.3,[['1個',50],['2個',100]]],
-  ['目玉焼き',180,12.0,14.0,0.3,[['1個',50]]],
-  ['卵白',44,10.5,0,0.5,[['1個分',30]]],
-  ['卵黄',387,16.5,33.5,0.3,[['1個分',20]]],
-  ['牛乳（普通）',67,3.3,3.8,4.8,[['コップ1杯(200ml)',200],['1パック(1000ml)',1000]]],
-  ['低脂肪乳',46,3.8,1.0,5.5,[['コップ1杯(200ml)',200]]],
-  ['ギリシャヨーグルト（無糖）',110,10.0,5.0,6.0,[['1個(100g)',100],['1個(110g)',110]]],
-  ['ヨーグルト（無糖）',62,3.6,3.0,4.9,[['1カップ',100],['1パック(400g)',400]]],
-  ['プロテインヨーグルト(パルテノ)',100,10.2,4.3,4.8,[['1個(100g)',100]]],
+  // 🍄 キノコ類
+  ['ぶなしめじ（生/茹で）',26,2.7,0.5,5.4,[['1パック(100g)',100],['1/2パック(50g)',50]],3.7],
+  ['えのきたけ（生/茹で）',34,2.8,0.2,7.6,[['1袋(100g)',100],['1/2袋(50g)',50]],3.9],
+  ['まいたけ（生/茹で）',24,2.0,0.5,5.0,[['1パック(100g)',100]],3.5],
+  ['エリンギ（生/茹で）',31,2.9,0.4,6.6,[['1本(40g)',40],['1パック(100g)',100]],4.3],
+  ['しいたけ（生）',25,3.1,0.4,4.9,[['2個(30g)',30],['1パック(100g)',100]],3.5],
 
-  ['ホエイプロテイン（粉）',380,75.0,7.0,10.0,[['1食分(30g)',30],['スプーン1杯(10g)',10]]],
-  ['カゼインプロテイン（粉）',370,78.0,5.0,8.0,[['1食分(30g)',30]]],
-  ['ソイプロテイン（粉）',360,80.0,4.0,9.0,[['1食分(30g)',30]]],
-  ['プロテインバー（標準）',350,20.0,10.0,40.0,[['1本(45g)',45]]],
-  ['inバー プロテイン バニラ',440,22.0,22.0,38.0,[['1本(44g)',44]]],
+  // 🥦 野菜類
+  ['キャベツ（生）',23,1.3,0.2,5.2,[['葉1枚(50g)',50],['千切り1杯(70g)',70],['1/4玉(300g)',300]],1.8],
+  ['レタス（生）',11,0.6,0.1,2.8,[['葉2枚(50g)',50],['1玉(300g)',300]],1.1],
+  ['ブロッコリー（茹で）',27,3.9,0.4,3.8,[['1株(200g)',200],['小鉢(50g)',50]],4.3],
+  ['トマト（生）',20,0.7,0.1,4.7,[['M1個(150g)',150],['ミニトマト5個(75g)',75]],1.0],
+  ['きゅうり（生）',13,1.0,0.1,3.0,[['1本(100g)',100]],1.1],
+  ['玉ねぎ（生）',33,1.0,0.1,8.4,[['1/2個(100g)',100],['1個(200g)',200]],1.5],
+  ['ほうれん草（茹で）',18,2.6,0.5,3.1,[['1株/小鉢(80g)',80],['1束(200g)',200]],2.8],
+  ['もやし（緑豆/茹で）',15,1.7,0.1,2.6,[['1袋(200g)',200]],1.3],
+  ['にんじん（生）',35,0.7,0.2,8.7,[['1/2本(75g)',75],['1本(150g)',150]],2.8],
+  ['大根（生）',15,0.5,0.1,4.1,[['輪切り1個(100g)',100]],1.4],
+  ['長ネギ（生）',28,1.4,0.1,7.0,[['1本(100g)',100]],2.2],
+  ['アボカド',187,2.5,18.7,6.2,[['1個(皮なし140g)',140],['1/2個(70g)',70]],5.3],
+  ['かぼちゃ（茹で）',83,1.9,0.3,20.6,[['小鉢(80g)',80]],2.8],
+  ['さつまいも（蒸し）',140,1.2,0.3,34.5,[['1本(200g)',200]],3.8],
 
-  ['白米（炊飯）',168,2.5,0.3,37.1,[['お茶碗1杯(150g)',150],['大盛り(200g)',200],['少なめ(100g)',100],['1合(330g)',330]]],
-  ['玄米（炊飯）',165,2.8,1.0,35.6,[['お茶碗1杯(150g)',150],['200g',200]]],
-  ['パックご飯（白米）',168,2.5,0.3,37.1,[['1パック(200g)',200],['1パック(150g)',150]]],
-  ['食パン',248,8.9,4.1,46.7,[['6枚切り1枚(60g)',60],['5枚切り1枚(75g)',75],['8枚切り1枚(45g)',45]]],
-  ['オートミール',380,13.7,5.7,69.1,[['1食(30g)',30],['1食(40g)',40],['1食(50g)',50]]],
-  ['うどん（茹）',105,2.6,0.4,21.6,[['1玉(200g)',200]]],
-  ['そば（茹）',132,4.8,1.0,26.0,[['1玉(200g)',200]]],
-  ['スパゲッティ（茹）',149,5.8,0.9,30.3,[['1食(250g)',250],['大盛り(350g)',350]]],
-  ['おにぎり（鮭）',170,4.5,1.0,36.0,[['1個(110g)',110]]],
-  ['おにぎり（ツナマヨ）',220,4.0,7.5,33.0,[['1個(110g)',110]]],
-  ['おにぎり（昆布/梅）',160,3.0,0.5,36.0,[['1個(110g)',110]]],
+  // 🫘 こんにゃく・海藻・大豆
+  ['板こんにゃく',6,0.1,0,2.3,[['1丁/1枚(250g)',250],['1/2枚(125g)',125]],2.2],
+  ['しらたき（糸こんにゃく）',7,0.2,0,2.9,[['1袋(200g)',200]],2.9],
+  ['納豆',200,16.5,10.0,12.1,[['1パック(45g)',45],['1パック(50g)',50]],6.7],
+  ['キムチ',46,3.2,0.5,7.9,[['小鉢(50g)',50]],2.5],
+  ['カットわかめ（水戻し）',12,1.2,0.2,2.0,[['小鉢(50g)',50]],1.8],
+  ['めかぶ（味付けなし）',11,0.9,0.4,2.6,[['1パック(40g)',40]],3.4],
+  ['もずく（酢なし）',6,0.3,0.2,2.0,[['1パック(60g)',60]],1.4],
+  ['木綿豆腐',73,7.0,4.9,1.5,[['1丁(300g)',300],['1/2丁(150g)',150]],0.4],
+  ['絹豆腐',56,5.3,3.5,2.0,[['1丁(300g)',300],['1パック(150g)',150]],0.3],
+  ['厚揚げ',150,10.7,11.3,0.9,[['1枚(150g)',150]],0.8],
+  ['枝豆（茹で/皮なし）',134,11.7,6.2,8.9,[['小鉢(70g)',70]],5.0],
 
-  ['サラダチキン（プレーン）',105,23.8,0.9,0.2,[['1パック(110g)',110],['1/2パック(55g)',55]]],
-  ['サラダチキン（ハーブ）',108,23.0,1.2,0.5,[['1パック(110g)',110]]],
-  ['鶏むね肉（皮なし）',116,23.3,1.9,0,[['1枚(250g)',250],['100g',100]]],
-  ['鶏むね肉（皮あり）',145,21.3,5.9,0.1,[['1枚(300g)',300]]],
-  ['鶏もも肉（皮なし）',127,19.0,5.0,0,[['1枚(250g)',250]]],
-  ['鶏もも肉（皮あり）',190,17.3,13.0,0,[['1枚(250g)',250]]],
-  ['鶏ささみ',105,23.9,0.8,0,[['1本(50g)',50],['2本(100g)',100]]],
-  ['牛もも肉（赤身）',140,21.3,4.9,0.3,[['ステーキ1枚(150g)',150]]],
-  ['豚もも肉（赤身）',119,22.1,3.0,0.2,[['100g',100]]],
-  ['豚ロース',248,19.3,17.2,0.2,[['1枚(100g)',100]]],
-  ['豚バラ',395,14.4,35.4,0.1,[['100g',100]]],
-  ['ウインナー',321,11.5,28.5,3.3,[['1本(20g)',20],['3本(60g)',60],['1袋(90g)',90]]],
+  // 🥑 油脂類・調味料・タレ
+  ['オリーブオイル',921,0,100,0,[['大さじ1(12g)',12],['小さじ1(4g)',4]],0],
+  ['ごま油',921,0,100,0,[['大さじ1(12g)',12],['小さじ1(4g)',4]],0],
+  ['サラダ油',921,0,100,0,[['大さじ1(12g)',12],['小さじ1(4g)',4]],0],
+  ['MCTオイル',900,0,100,0,[['小さじ1(5g)',5],['大さじ1(15g)',15]],0],
+  ['無塩バター',745,0.6,83.0,0.2,[['10g',10],['大さじ1(12g)',12]],0],
+  ['マヨネーズ（普通）',703,1.5,76.0,4.5,[['大さじ1(15g)',15],['小さじ1(5g)',5]],0],
+  ['マヨネーズ（カロリーハーフ）',316,0.8,31.0,9.0,[['大さじ1(15g)',15]],0],
+  ['濃口醤油',71,7.7,0,10.1,[['大さじ1(18g)',18],['小さじ1(6g)',6]],0],
+  ['ぽん酢（味ぽん）',63,2.0,0,12.0,[['大さじ1(15g)',15]],0],
+  ['めんつゆ（3倍濃縮）',86,3.6,0,16.5,[['大さじ1(15g)',15]],0],
+  ['焼肉のタレ',130,2.5,0.8,27.0,[['大さじ1(18g)',18]],0],
+  ['味噌（合わせ）',217,12.0,6.0,24.0,[['大さじ1(18g)',18]],4.0],
+  ['ケチャップ',119,1.6,0.2,27.5,[['大さじ1(15g)',15]],1.5],
 
-  ['鮭（生）',133,22.3,4.1,0.1,[['1切れ(80g)',80]]],
-  ['ツナ缶（水煮）',71,16.0,0.7,0.1,[['1缶(70g)',70]]],
-  ['ツナ缶（油漬）',267,18.8,21.7,0.1,[['1缶(70g)',70]]],
-  ['さば缶（水煮）',174,20.9,10.7,0.2,[['1缶(190g)',190],['1/2缶(95g)',95]]],
-  ['さば味噌煮（缶）',210,16.3,13.9,6.6,[['1缶(190g)',190]]],
-  ['まぐろ赤身',125,26.4,1.4,0.1,[['1冊(150g)',150],['5貫(75g)',75]]],
+  // 🥚 卵・乳製品・プロテイン飲料
+  ['鶏卵（全卵）',151,12.3,10.3,0.3,[['M1個(約50g)',50],['L1個(約60g)',60],['2個(100g)',100]],0],
+  ['ゆで卵',151,12.9,10.0,0.3,[['1個(50g)',50],['2個(100g)',100]],0],
+  ['目玉焼き',180,12.0,14.0,0.3,[['1個(50g)',50]],0],
+  ['卵白',44,10.5,0,0.5,[['1個分(30g)',30]],0],
+  ['牛乳（普通）',67,3.3,3.8,4.8,[['コップ1杯(200ml)',200],['1パック(1000ml)',1000]],0],
+  ['低脂肪乳',46,3.8,1.0,5.5,[['コップ1杯(200ml)',200]],0],
+  ['無調整豆乳',46,3.6,2.0,3.1,[['1パック(200ml)',200]],0.4],
+  ['ギリシャヨーグルト（無糖）',110,10.0,5.0,6.0,[['1個(100g)',100]],0],
+  ['プロテインヨーグルト(パルテノ)',100,10.2,4.3,4.8,[['1個(100g)',100]],0],
+  ['ザバス ミルクプロテイン (200ml)',51,7.5,0,5.2,[['1本(200ml)',200]],0],
+  ['ザバス ミルクプロテイン (430ml)',40,7.0,0,3.1,[['1本(430ml)',430]],0],
 
-  ['納豆',200,16.5,10.0,12.1,[['1パック(45g)',45],['1パック(50g)',50]]],
-  ['木綿豆腐',73,7.0,4.9,1.5,[['1丁(300g)',300],['1/2丁(150g)',150],['1パック(150g)',150]]],
-  ['絹豆腐',56,5.3,3.5,2.0,[['1丁(300g)',300],['1パック(150g)',150]]],
-  ['無調整豆乳',46,3.6,2.0,3.1,[['1パック(200ml)',200]]],
+  // 🥛 プロテイン（粉・バー）
+  ['ホエイプロテイン（粉）',380,75.0,7.0,10.0,[['1食分(30g)',30],['スプーン1杯(10g)',10]],0],
+  ['カゼインプロテイン（粉）',370,78.0,5.0,8.0,[['1食分(30g)',30]],0],
+  ['ソイプロテイン（粉）',360,80.0,4.0,9.0,[['1食分(30g)',30]],0],
+  ['プロテインバー（標準）',350,20.0,10.0,40.0,[['1本(45g)',45]],1.5],
+  ['inバー プロテイン バニラ',440,22.0,22.0,38.0,[['1本(44g)',44]],0.5],
 
-  ['ブロッコリー（茹）',27,3.9,0.4,3.8,[['1株(200g)',200],['小鉢(50g)',50]]],
-  ['バナナ',86,1.1,0.2,22.5,[['1本(皮なし90g)',90]]],
-  ['りんご',61,0.2,0.2,16.2,[['1個(250g)',250],['1/2個(125g)',125]]],
-  ['アボカド',187,2.5,18.7,6.2,[['1個(皮なし140g)',140],['1/2個(70g)',70]]],
-  ['アーモンド',598,19.6,51.8,19.7,[['10粒(12g)',12],['20粒(24g)',24]]],
-  ['和風ドレッシング',117,0.7,8.8,9.5,[['大さじ1(15g)',15]]],
-  ['オリーブオイル',921,0,100,0,[['大さじ1(12g)',12],['小さじ1(4g)',4]]],
+  // 🍚 主食・炭水化物
+  ['白米（炊飯）',168,2.5,0.3,37.1,[['お茶碗1杯(150g)',150],['大盛り(200g)',200],['少なめ(100g)',100],['1合(330g)',330]],0.5],
+  ['玄米（炊飯）',165,2.8,1.0,35.6,[['お茶碗1杯(150g)',150],['200g',200]],1.4],
+  ['パックご飯（白米）',168,2.5,0.3,37.1,[['1パック(200g)',200],['1パック(150g)',150]],0.5],
+  ['食パン',248,8.9,4.1,46.7,[['6枚切り1枚(60g)',60],['5枚切り1枚(75g)',75]],2.3],
+  ['オートミール',380,13.7,5.7,69.1,[['1食(30g)',30],['1食(40g)',40],['1食(50g)',50]],9.4],
+  ['うどん（茹で）',105,2.6,0.4,21.6,[['1玉(200g)',200]],0.8],
+  ['そば（茹で）',132,4.8,1.0,26.0,[['1玉(200g)',200]],1.5],
+  ['スパゲッティ（茹で）',149,5.8,0.9,30.3,[['1食(250g)',250],['大盛り(350g)',350]],1.5],
+  ['おにぎり（鮭）',170,4.5,1.0,36.0,[['1個(110g)',110]],0.5],
+  ['おにぎり（ツナマヨ）',220,4.0,7.5,33.0,[['1個(110g)',110]],0.5],
+  ['おにぎり（昆布/梅）',160,3.0,0.5,36.0,[['1個(110g)',110]],0.5],
+  ['ベーグル（プレーン）',245,9.5,1.2,48.0,[['1個(90g)',90]],2.5],
+
+  // 🥩 肉類・居酒屋メニュー・加工肉
+  ['サラダチキン（プレーン）',105,23.8,0.9,0.2,[['1パック(110g)',110],['1/2パック(55g)',55]],0],
+  ['サラダチキン（ハーブ）',108,23.0,1.2,0.5,[['1パック(110g)',110]],0],
+  ['鶏むね肉（皮なし）',116,23.3,1.9,0,[['1枚(250g)',250],['100g',100]],0],
+  ['鶏むね肉（皮あり）',145,21.3,5.9,0.1,[['1枚(300g)',300]],0],
+  ['鶏もも肉（皮なし）',127,19.0,5.0,0,[['1枚(250g)',250]],0],
+  ['鶏もも肉（皮あり）',190,17.3,13.0,0,[['1枚(250g)',250]],0],
+  ['鶏ささみ',105,23.9,0.8,0,[['1本(50g)',50],['2本(100g)',100]],0],
+  ['鶏レバー（生/加熱）',111,18.9,3.1,0.6,[['1串(50g)',50],['100g',100]],0],
+  ['焼き鳥（もも/塩）',160,16.0,9.0,0.2,[['1串(40g)',40],['2串(80g)',80]],0],
+  ['焼き鳥（もも/タレ）',185,15.0,8.5,7.0,[['1串(45g)',45]],0],
+  ['牛もも肉（赤身）',140,21.3,4.9,0.3,[['ステーキ1枚(150g)',150]],0],
+  ['豚もも肉（赤身）',119,22.1,3.0,0.2,[['100g',100]],0],
+  ['豚ロース',248,19.3,17.2,0.2,[['1枚(100g)',100]],0],
+  ['豚バラ',395,14.4,35.4,0.1,[['100g',100]],0],
+  ['ウインナー',321,11.5,28.5,3.3,[['1本(20g)',20],['3本(60g)',60]],0],
+  ['ロースハム',196,16.5,13.8,1.5,[['1枚(15g)',15],['4枚(60g)',60]],0],
+  ['ベーコン',405,12.9,39.1,0.3,[['1枚(15g)',15]],0],
+  ['ビーフジャーキー',315,54.0,7.0,8.0,[['1袋(30g)',30]],0],
+
+  // 🐟 魚介類・練り物
+  ['鮭（生/焼き）',133,22.3,4.1,0.1,[['1切れ(80g)',80]],0],
+  ['ツナ缶（水煮）',71,16.0,0.7,0.1,[['1缶(70g)',70]],0],
+  ['ツナ缶（油漬）',267,18.8,21.7,0.1,[['1缶(70g)',70]],0],
+  ['さば缶（水煮）',174,20.9,10.7,0.2,[['1缶(190g)',190],['1/2缶(95g)',95]],0],
+  ['さば味噌煮（缶）',210,16.3,13.9,6.6,[['1缶(190g)',190]],0],
+  ['まぐろ赤身（刺身）',125,26.4,1.4,0.1,[['1冊(150g)',150],['5貫(75g)',75]],0],
+  ['かつお（刺身/たたき）',114,25.8,0.5,0.2,[['1食(100g)',100]],0],
+  ['ボイルエビ',91,19.6,0.7,0.3,[['5尾(50g)',50]],0],
+  ['ゆでタコ',99,21.7,0.7,0.1,[['1人前(80g)',80]],0],
+  ['ボイルイカ',88,18.1,0.8,0.2,[['1人前(100g)',100]],0],
+  ['ちくわ',121,12.2,2.0,13.5,[['1本(30g)',30]],0],
+  ['カニカマ',89,12.1,0.4,9.2,[['4本(50g)',50]],0],
+
+  // 🥜 ナッツ・間食・お酒
+  ['素焼きアーモンド',598,19.6,51.8,19.7,[['10粒(12g)',12],['20粒(24g)',24]],10.1],
+  ['ミックスナッツ',620,17.0,55.0,18.0,[['1袋(25g)',25],['一ツカミ(15g)',15]],7.0],
+  ['くるみ（生/素焼き）',674,14.6,68.8,11.7,[['5粒(15g)',15]],7.5],
+  ['高カカオチョコ (70%)',560,9.0,41.0,42.0,[['1枚/個(5g)',5],['3個(15g)',15]],10.0],
+  ['大福（赤飯/草大福）',242,4.5,0.6,55.0,[['1個(100g)',100]],2.0],
+  ['ハイボール（350ml）',48,0,0,0.1,[['1缶(350ml)',350]],0],
+  ['こだわり酒場のレモンサワー',42,0,0,1.2,[['1缶(350ml)',350]],0],
+  ['ビール（淡麗/一番搾り等）',42,0.4,0,3.1,[['350ml缶',350]],0],
+  ['ブラックコーヒー（無糖）',4,0.2,0,0.7,[['1杯(200ml)',200]],0],
+
+  // 🍎 果物
+  ['バナナ',86,1.1,0.2,22.5,[['1本(皮なし90g)',90]],1.1],
+  ['りんご',61,0.2,0.2,16.2,[['1個(250g)',250],['1/2個(125g)',125]],1.4],
+  ['キウイフルーツ',56,1.0,0.1,13.5,[['1個(80g)',80]],2.5],
+  ['みかん',45,0.7,0.1,11.5,[['1個(80g)',80]],1.0],
+  ['冷凍ブルーベリー',49,0.5,0.1,12.9,[['1カップ(100g)',100]],3.3]
 ];
 
-const FOOD_DB = FOOD_DB_RAW.map(([name,cal,p,f,c,units]) => ({
-  name, cal, p, f, c, units: units || []
+const FOOD_DB = FOOD_DB_RAW.map(([name,cal,p,f,c,units,fib]) => ({
+  name, cal, p, f, c, units: units || [], fib: fib || 0
 }));
 
 // ─── EXERCISE DATABASE ─────────────────────────────────────────
@@ -168,6 +248,7 @@ const state = {
   calMonth: new Date().getMonth(),
   selectedCalDate: null,
   currentPrevWorkout: null,
+  deferredPrompt: null
 };
 
 // Timer
@@ -253,6 +334,28 @@ function handleFirstSetupSubmit(e) {
   closeModal('modal-first-setup');
   refreshAll();
   toast('初期設定が完了しました！💪', 'success');
+}
+
+// ─── Smart PFC Goal Auto-Calculation ────────────────────────
+function setupSmartPfcGoalCalc() {
+  const calEl = qs('#goal-cal');
+  const pEl   = qs('#goal-p');
+  const fEl   = qs('#goal-f');
+  const cEl   = qs('#goal-c');
+
+  const calcC = () => {
+    const cal = parseFloat(calEl.value) || 0;
+    const p   = parseFloat(pEl.value)   || 0;
+    const f   = parseFloat(fEl.value)   || 0;
+    if (cal > 0 && p > 0 && f > 0) {
+      const c = Math.max(0, Math.round((cal - (p * 4) - (f * 9)) / 4));
+      cEl.value = c;
+    }
+  };
+
+  calEl.addEventListener('input', calcC);
+  pEl.addEventListener('input', calcC);
+  fEl.addEventListener('input', calcC);
 }
 
 // ─── Navigation ─────────────────────────────────────────────
@@ -503,7 +606,7 @@ function renderWorkoutHistory() {
 function searchFood(query) {
   if (!query || query.length < 1) return [];
   const q = query.toLowerCase();
-  return FOOD_DB.filter(f=>f.name.toLowerCase().includes(q)).slice(0,12);
+  return FOOD_DB.filter(f=>f.name.toLowerCase().includes(q)).slice(0,14);
 }
 
 function showFoodDropdown(results) {
@@ -516,7 +619,7 @@ function showFoodDropdown(results) {
   drop.innerHTML = results.map((f,i)=>`
     <div class="food-drop-item" data-idx="${i}">
       <div class="food-drop-name">${f.name}</div>
-      <div class="food-drop-meta">${f.cal.toFixed(0)}kcal · P${f.p.toFixed(1)}g · F${f.f.toFixed(1)}g · C${f.c.toFixed(1)}g（100gあたり）</div>
+      <div class="food-drop-meta">${f.cal.toFixed(0)}kcal · P${f.p.toFixed(1)}g · F${f.f.toFixed(1)}g · C${f.c.toFixed(1)}g · Fib${(f.fib||0).toFixed(1)}g</div>
     </div>
   `).join('');
   drop.querySelectorAll('.food-drop-item').forEach((el,i)=>{
@@ -531,7 +634,7 @@ function selectFood(food) {
   state.selectedFood = food;
   qs('#food-search').value = food.name;
   qs('#food-selected-name').textContent = food.name;
-  qs('#food-selected-meta').textContent = `100gあたり: ${food.cal.toFixed(0)}kcal · P${food.p.toFixed(1)}g · F${food.f.toFixed(1)}g · C${food.c.toFixed(1)}g`;
+  qs('#food-selected-meta').textContent = `100gあたり: ${food.cal.toFixed(0)}kcal · P${food.p.toFixed(1)}g · F${food.f.toFixed(1)}g · C${food.c.toFixed(1)}g · Fib${(food.fib||0).toFixed(1)}g`;
   qs('#food-selected-card').classList.remove('hidden');
 
   const uWrap = qs('#unit-btns-wrap');
@@ -566,11 +669,13 @@ function calcFoodPFC() {
   const p   = (state.selectedFood.p   * ratio).toFixed(1);
   const f   = (state.selectedFood.f   * ratio).toFixed(1);
   const c   = (state.selectedFood.c   * ratio).toFixed(1);
+  const fib = ((state.selectedFood.fib || 0) * ratio).toFixed(1);
 
   qs('#pfc-cal-preview').textContent = cal;
   qs('#pfc-p-preview').textContent   = p;
   qs('#pfc-f-preview').textContent   = f;
   qs('#pfc-c-preview').textContent   = c;
+  qs('#pfc-fib-preview').textContent = fib;
 
   qs('#modal-meal-name').value = `${state.selectedFood.name} (${grams}g)`;
   qs('#modal-meal-cal').value  = cal;
@@ -580,7 +685,8 @@ function calcFoodPFC() {
 }
 
 function addCurrentToPendingList() {
-  let name, cal, p, f, c;
+  let name, cal, p, f, c, fib;
+  const cat = qs('#modal-meal-category').value;
   if (state.selectedFood) {
     const grams = parseFloat(qs('#food-grams').value) || 100;
     const ratio = grams / 100;
@@ -589,6 +695,7 @@ function addCurrentToPendingList() {
     p    = parseFloat((state.selectedFood.p   * ratio).toFixed(1));
     f    = parseFloat((state.selectedFood.f   * ratio).toFixed(1));
     c    = parseFloat((state.selectedFood.c   * ratio).toFixed(1));
+    fib  = parseFloat(((state.selectedFood.fib||0) * ratio).toFixed(1));
   } else {
     name = qs('#modal-meal-name').value.trim();
     if (!name) { toast('食材または料理名を入力してください','warning'); return; }
@@ -596,9 +703,10 @@ function addCurrentToPendingList() {
     p    = parseFloat(qs('#modal-meal-p').value)   || 0;
     f    = parseFloat(qs('#modal-meal-f').value)   || 0;
     c    = parseFloat(qs('#modal-meal-c').value)   || 0;
+    fib  = 0;
   }
 
-  state.pendingMeals.push({ id: Date.now() + Math.random(), name, cal, p, f, c });
+  state.pendingMeals.push({ id: Date.now() + Math.random(), name, category: cat, cal, p, f, c, fib });
   renderPendingList();
   toast(`「${name}」をリストに追加`, 'info', 1500);
 
@@ -611,6 +719,7 @@ function addCurrentToPendingList() {
   qs('#pfc-p-preview').textContent   = '—';
   qs('#pfc-f-preview').textContent   = '—';
   qs('#pfc-c-preview').textContent   = '—';
+  qs('#pfc-fib-preview').textContent = '—';
   qs('#modal-meal-name').value = '';
   qs('#modal-meal-cal').value  = '';
   qs('#modal-meal-p').value    = '';
@@ -631,14 +740,14 @@ function renderPendingList() {
   section.classList.remove('hidden');
   qs('#pending-count').textContent = state.pendingMeals.length;
 
-  let totalCal = 0, totalP = 0, totalF = 0, totalC = 0;
+  let totalCal = 0, totalP = 0, totalF = 0, totalC = 0, totalFib = 0;
   list.innerHTML = state.pendingMeals.map((item, i) => {
-    totalCal += item.cal; totalP += item.p; totalF += item.f; totalC += item.c;
+    totalCal += item.cal; totalP += item.p; totalF += item.f; totalC += item.c; totalFib += (item.fib||0);
     return `
       <div class="pending-item">
         <div class="pending-item-info">
-          <div class="pending-item-name">${item.name}</div>
-          <div class="pending-item-macros">${item.cal}kcal · P${item.p}g · F${item.f}g · C${item.c}g</div>
+          <div class="pending-item-name">${item.category ? `[${item.category}] ` : ''}${item.name}</div>
+          <div class="pending-item-macros">${item.cal}kcal · P${item.p}g · F${item.f}g · C${item.c}g ${(item.fib>0)?`· Fib${item.fib}g`:''}</div>
         </div>
         <button type="button" class="del-btn" data-idx="${i}" style="width:24px;height:24px;">
           <i data-lucide="x" style="width:12px;height:12px;"></i>
@@ -651,6 +760,7 @@ function renderPendingList() {
   qs('#pending-total-p').textContent   = totalP.toFixed(1);
   qs('#pending-total-f').textContent   = totalF.toFixed(1);
   qs('#pending-total-c').textContent   = totalC.toFixed(1);
+  qs('#pending-total-fib').textContent = totalFib.toFixed(1);
 
   list.querySelectorAll('.del-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -665,7 +775,7 @@ function savePendingMealsBatch() {
   if (!state.pendingMeals.length) return false;
   const now = new Date();
   const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const d = todayKey();
+  const d = qs('#modal-meal-date').value || todayKey();
 
   state.pendingMeals.forEach(m => {
     state.meals.push({ id: Date.now() + Math.random(), date: d, time, ...m });
@@ -675,11 +785,13 @@ function savePendingMealsBatch() {
   state.pendingMeals = [];
   renderPendingList();
   saveAll(); renderMealHistory(); updateMealProgress(); updateDashboard();
-  toast(`${count}件の食事をまとめて記録しました ✓`, 'success');
+  toast(`${count}件の食事を記録しました ✓`, 'success');
   return true;
 }
 
 function resetMealModal() {
+  qs('#modal-meal-date').value = todayKey();
+  qs('#modal-meal-category').value = '朝食';
   state.pendingMeals = [];
   renderPendingList();
   state.selectedFood = null;
@@ -692,6 +804,7 @@ function resetMealModal() {
   qs('#pfc-p-preview').textContent   = '—';
   qs('#pfc-f-preview').textContent   = '—';
   qs('#pfc-c-preview').textContent   = '—';
+  qs('#pfc-fib-preview').textContent = '—';
   qs('#modal-meal-name').value = '';
   qs('#modal-meal-cal').value  = '';
   qs('#modal-meal-p').value    = '';
@@ -702,20 +815,29 @@ function resetMealModal() {
 // ─── Meal Tab ────────────────────────────────────────────────
 function getTodayMeals()  { return state.meals.filter(m=>m.date===todayKey()); }
 function getTodayTotals() {
-  return getTodayMeals().reduce((a,m)=>({cal:a.cal+(m.cal||0),p:a.p+(m.p||0),f:a.f+(m.f||0),c:a.c+(m.c||0)}),{cal:0,p:0,f:0,c:0});
+  return getTodayMeals().reduce((a,m)=>({
+    cal:a.cal+(m.cal||0), p:a.p+(m.p||0), f:a.f+(m.f||0), c:a.c+(m.c||0), fib:a.fib+(m.fib||0)
+  }),{cal:0,p:0,f:0,c:0,fib:0});
 }
+
 function updateMealProgress() {
   const t=getTodayTotals(), g=state.goals;
   const pct=(v,goal)=>clamp(Math.round((v/goal)*100),0,100);
+
   qs('#meal-cal-num').textContent=Math.round(t.cal);  qs('#meal-cal-tgt').textContent=g.cal;
   qs('#meal-cal-bar').style.width=pct(t.cal,g.cal)+'%';
+
   qs('#meal-p-num').textContent=`${t.p.toFixed(1)}g`; qs('#meal-p-tgt').textContent=`${g.p}g`;
   qs('#meal-f-num').textContent=`${t.f.toFixed(1)}g`; qs('#meal-f-tgt').textContent=`${g.f}g`;
   qs('#meal-c-num').textContent=`${t.c.toFixed(1)}g`; qs('#meal-c-tgt').textContent=`${g.c}g`;
+  qs('#meal-fib-num').textContent=`${t.fib.toFixed(1)}g`;
+
   qs('#meal-p-bar').style.width=pct(t.p,g.p)+'%';
   qs('#meal-f-bar').style.width=pct(t.f,g.f)+'%';
   qs('#meal-c-bar').style.width=pct(t.c,g.c)+'%';
+  qs('#meal-fib-bar').style.width=pct(t.fib, 20)+'%';
 }
+
 function renderMealHistory() {
   const list=qs('#meal-history-list'), meals=getTodayMeals();
   if (!meals.length) {
@@ -723,23 +845,47 @@ function renderMealHistory() {
     lucide.createIcons({nodes:list.querySelectorAll('[data-lucide]')});
     return;
   }
-  list.innerHTML = meals.map(m=>`
-    <div class="log-item">
-      <div style="flex:1;min-width:0;">
-        <div class="log-item-meta">${m.time||''}</div>
-        <div class="log-item-title">${m.name}</div>
-        <div class="log-item-stats">
-          <span class="chip chip-orange">${Math.round(m.cal)}kcal</span>
-          <span class="chip chip-green">P${m.p.toFixed(1)}g</span>
-          <span class="chip chip-amber">F${m.f.toFixed(1)}g</span>
-          <span class="chip chip-cyan">C${m.c.toFixed(1)}g</span>
+
+  // 朝食・昼食・夕食・間食のグループ分け
+  const categories = ['朝食', '昼食', '夕食', '間食'];
+  let html = '';
+
+  categories.forEach(cat => {
+    const catMeals = meals.filter(m => (m.category || '間食') === cat);
+    if (catMeals.length > 0) {
+      const catCal = catMeals.reduce((a, b) => a + (b.cal || 0), 0);
+      const icon = { 朝食:'🌅', 昼食:'☀️', 夕食:'🌙', 間食:'☕' }[cat] || '🍱';
+      html += `
+        <div class="meal-cat-group">
+          <div class="meal-cat-header">
+            <span>${icon} ${cat}</span>
+            <span style="font-size:0.75rem;color:var(--text-2);">${Math.round(catCal)} kcal</span>
+          </div>
+          ${catMeals.map(m => `
+            <div class="log-item">
+              <div style="flex:1;min-width:0;">
+                <div class="log-item-meta">${m.time||''}</div>
+                <div class="log-item-title">${m.name}</div>
+                <div class="log-item-stats">
+                  <span class="chip chip-orange">${Math.round(m.cal)}kcal</span>
+                  <span class="chip chip-green">P${m.p.toFixed(1)}g</span>
+                  <span class="chip chip-amber">F${m.f.toFixed(1)}g</span>
+                  <span class="chip chip-cyan">C${m.c.toFixed(1)}g</span>
+                  ${(m.fib>0)?`<span class="chip chip-pink">Fib${m.fib.toFixed(1)}g</span>`:''}
+                </div>
+              </div>
+              <button class="del-btn" data-id="${m.id}" aria-label="削除">
+                <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+              </button>
+            </div>
+          `).join('')}
         </div>
-      </div>
-      <button class="del-btn" data-id="${m.id}" aria-label="削除">
-        <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
-      </button>
-    </div>
-  `).join('');
+      `;
+    }
+  });
+
+  list.innerHTML = html;
+
   list.querySelectorAll('.del-btn').forEach(btn=>btn.addEventListener('click',()=>{
     state.meals=state.meals.filter(m=>String(m.id)!==btn.dataset.id);
     saveAll();renderMealHistory();updateMealProgress();updateDashboard();if(currentTab==='analytics')renderCalendar();
@@ -794,7 +940,6 @@ function updateInBodyLatest() {
     qs('#dash-inbody-sub').textContent    = '最新: 未登録';
   }
 
-  // Calculate Weekly & Monthly Weight Trends
   const now = new Date();
   const msInDay = 86400000;
 
@@ -888,8 +1033,8 @@ function showCalendarDayDetail(dateStr) {
   const inbody   = state.inbody.find(b => b.date === dateStr);
 
   const dayMealTotal = meals.reduce((acc, m) => ({
-    cal: acc.cal + (m.cal||0), p: acc.p + (m.p||0), f: acc.f + (m.f||0), c: acc.c + (m.c||0)
-  }), { cal: 0, p: 0, f: 0, c: 0 });
+    cal: acc.cal + (m.cal||0), p: acc.p + (m.p||0), f: acc.f + (m.f||0), c: acc.c + (m.c||0), fib: acc.fib + (m.fib||0)
+  }), { cal: 0, p: 0, f: 0, c: 0, fib: 0 });
 
   let html = `<div class="cal-detail-date">📅 ${dateStr} の記録</div>`;
 
@@ -921,11 +1066,11 @@ function showCalendarDayDetail(dateStr) {
     <div class="cal-detail-section-title" style="color:var(--orange);">🍱 食事 (${Math.round(dayMealTotal.cal)} kcal)</div>`;
   if (meals.length) {
     html += `<div style="font-size:0.75rem;color:var(--text-2);margin-bottom:4px;">
-      P ${dayMealTotal.p.toFixed(1)}g | F ${dayMealTotal.f.toFixed(1)}g | C ${dayMealTotal.c.toFixed(1)}g
+      P ${dayMealTotal.p.toFixed(1)}g | F ${dayMealTotal.f.toFixed(1)}g | C ${dayMealTotal.c.toFixed(1)}g | Fib ${dayMealTotal.fib.toFixed(1)}g
     </div>`;
     html += meals.map(m => `
       <div style="font-size:0.78rem;color:var(--text-2);margin-bottom:2px;">
-        • ${m.name} (${Math.round(m.cal)}kcal)
+        • [${m.category||'食事'}] ${m.name} (${Math.round(m.cal)}kcal)
       </div>
     `).join('');
   } else {
@@ -962,12 +1107,15 @@ function updateDashboard() {
   qs('#dash-cal-target').textContent = g.cal;
   qs('#dash-cal-pct').textContent    = Math.round(pct * 100) + '%';
 
-  qs('#dash-p-val').textContent = `${t.p.toFixed(1)}g`; qs('#dash-p-tgt').textContent = `${g.p}g`;
-  qs('#dash-f-val').textContent = `${t.f.toFixed(1)}g`; qs('#dash-f-tgt').textContent = `${g.f}g`;
-  qs('#dash-c-val').textContent = `${t.c.toFixed(1)}g`; qs('#dash-c-tgt').textContent = `${g.c}g`;
-  qs('#dash-p-bar').style.width = clamp((t.p / g.p) * 100, 0, 100) + '%';
-  qs('#dash-f-bar').style.width = clamp((t.f / g.f) * 100, 0, 100) + '%';
-  qs('#dash-c-bar').style.width = clamp((t.c / g.c) * 100, 0, 100) + '%';
+  qs('#dash-p-val').textContent   = `${t.p.toFixed(1)}g`; qs('#dash-p-tgt').textContent   = `${g.p}g`;
+  qs('#dash-f-val').textContent   = `${t.f.toFixed(1)}g`; qs('#dash-f-tgt').textContent   = `${g.f}g`;
+  qs('#dash-c-val').textContent   = `${t.c.toFixed(1)}g`; qs('#dash-c-tgt').textContent   = `${g.c}g`;
+  qs('#dash-fib-val').textContent = `${t.fib.toFixed(1)}g`;
+
+  qs('#dash-p-bar').style.width   = clamp((t.p / g.p) * 100, 0, 100) + '%';
+  qs('#dash-f-bar').style.width   = clamp((t.f / g.f) * 100, 0, 100) + '%';
+  qs('#dash-c-bar').style.width   = clamp((t.c / g.c) * 100, 0, 100) + '%';
+  qs('#dash-fib-bar').style.width = clamp((t.fib / 20) * 100, 0, 100) + '%';
 
   if (!state.profile) {
     qs('#bal-status-val').textContent = '— kcal';
@@ -1166,6 +1314,29 @@ function refreshAll() {
 
 // ─── Event Bindings ──────────────────────────────────────────
 function bindEvents() {
+  // PWA Install Prompt Listener
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    state.deferredPrompt = e;
+    const banner = qs('#pwa-banner');
+    if (banner) banner.classList.remove('hidden');
+  });
+
+  const installBtn = qs('#pwa-install-btn');
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (state.deferredPrompt) {
+        state.deferredPrompt.prompt();
+        const { outcome } = await state.deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          toast('アプリをホーム画面に追加しました！🎉', 'success');
+        }
+        state.deferredPrompt = null;
+        qs('#pwa-banner').classList.add('hidden');
+      }
+    });
+  }
+
   qsa('.nav-item').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
   qsa('.nav-to').forEach(el=>el.addEventListener('click',()=>switchTab(el.dataset.target)));
 
@@ -1173,6 +1344,8 @@ function bindEvents() {
   qsa('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o && o.id !== 'modal-first-setup') o.classList.remove('open'); }));
 
   qs('#first-setup-form').addEventListener('submit', handleFirstSetupSubmit);
+
+  setupSmartPfcGoalCalc();
 
   qs('#settings-open-btn').addEventListener('click',()=>{ loadSettingsToForm(); openModal('modal-settings'); });
   qsa('.settings-tab-btn').forEach(btn=>btn.addEventListener('click',()=>{
@@ -1240,10 +1413,13 @@ function bindEvents() {
   qs('#cardio-speed').addEventListener('input',updateCardioCalorie);
   qs('#cardio-time').addEventListener('input',updateCardioCalorie);
 
+  qs('#workout-date-input').value = todayKey();
+
   qs('#workout-form').addEventListener('submit',e=>{
     e.preventDefault();
     const ex=qs('#exercise-select').value;
     const n=qs('#workout-notes').value.trim();
+    const date=qs('#workout-date-input').value || todayKey();
 
     if (state.selectedEquip === '有酸素') {
       const incline = parseFloat(qs('#cardio-incline').value) || 0;
@@ -1259,7 +1435,7 @@ function bindEvents() {
       const calories = parseInt(caloriesStr) || 0;
 
       state.workouts.push({
-        id: Date.now(), date: todayKey(),
+        id: Date.now(), date,
         equip: '有酸素', exercise: ex, isCardio: true,
         incline, speed, time, calories, notes: n
       });
@@ -1274,7 +1450,7 @@ function bindEvents() {
       if (!ex||!w||!r||!s) { toast('種目・重量・Rep・Set を入力してください','warning'); return; }
 
       state.workouts.push({
-        id:Date.now(), date:todayKey(),
+        id:Date.now(), date,
         equip:state.selectedEquip, exercise:ex, isCardio:false,
         weight:w, reps:r, sets:s, notes:n, oneRM:calcOneRM(w,r)
       });
@@ -1341,9 +1517,11 @@ function bindEvents() {
     const p=parseFloat(qs('#modal-meal-p').value)||0;
     const f=parseFloat(qs('#modal-meal-f').value)||0;
     const c=parseFloat(qs('#modal-meal-c').value)||0;
+    const cat=qs('#modal-meal-category').value;
+    const d=qs('#modal-meal-date').value || todayKey();
     const now=new Date();
     const time=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    state.meals.push({id:Date.now(),date:todayKey(),time,name,cal,p,f,c});
+    state.meals.push({id:Date.now(),date:d,time,category:cat,name,cal,p,f,c});
     saveAll(); renderMealHistory(); updateMealProgress(); updateDashboard();
     closeModal('modal-meal'); toast(`「${name}」を記録しました ✓`,'success');
   });

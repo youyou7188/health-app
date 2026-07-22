@@ -23,7 +23,7 @@
       --border:rgba(255,255,255,0.08); --border-hover:rgba(255,255,255,0.15); --border-focus:#38bdf8;
       --text-1:#f1f5f9; --text-2:#94a3b8; --text-3:#64748b;
       --cyan:#38bdf8; --green:#22c55e; --amber:#f59e0b;
-      --orange:#f97316; --rose:#f43f5e; --purple:#a855f7;
+      --orange:#f97316; --rose:#f43f5e; --purple:#a855f7; --pink:#ec4899;
       --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:24px; --r-full:9999px;
       --shadow-sm:0 2px 8px rgba(0,0,0,0.4);
       --font:'Inter','Noto Sans JP',system-ui,sans-serif;
@@ -110,7 +110,7 @@
     .balance-sub-title { font-size:0.62rem; color:var(--text-3); font-weight:700; text-transform:uppercase; margin-bottom:3px; }
     .balance-sub-val   { font-size:0.92rem; font-weight:800; }
 
-    /* WEIGHT TREND CARD */
+    /* TREND CARD */
     .trend-card {
       background:var(--bg-card); border:1px solid rgba(34,197,94,0.25);
       border-radius:var(--r-lg); padding:14px; margin-bottom:12px;
@@ -136,7 +136,6 @@
     .btn-ghost  { background:rgba(255,255,255,0.06); color:var(--text-2); border:1px solid var(--border); }
     .btn-ghost:hover { background:rgba(255,255,255,0.1); }
     .btn-cyan   { background:linear-gradient(135deg,#0ea5e9,#0284c7); color:#fff; box-shadow:0 3px 12px rgba(14,165,233,0.35); }
-    .btn-cyan:hover { box-shadow:0 4px 16px rgba(14,165,233,0.5); }
     .btn-green  { background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; box-shadow:0 3px 12px rgba(34,197,94,0.35); }
     .btn-orange { background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; box-shadow:0 3px 12px rgba(249,115,22,0.35); }
     .btn-amber  { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; }
@@ -170,13 +169,14 @@
     .fill-amber  { background:linear-gradient(90deg,#fbbf24,#f59e0b); }
     .fill-orange { background:linear-gradient(90deg,#fb923c,#f97316); }
     .fill-purple { background:linear-gradient(90deg,#c084fc,#a855f7); }
+    .fill-pink   { background:linear-gradient(90deg,#f472b6,#ec4899); }
 
     /* MACRO PILLS */
-    .macro-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-    .macro-pill { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--r-md); padding:9px 7px; }
-    .macro-pill-label { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px; }
-    .macro-pill-value { font-size:0.95rem; font-weight:800; margin-bottom:4px; }
-    .macro-pill-sub   { font-size:0.62rem; color:var(--text-3); }
+    .macro-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+    .macro-pill { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--r-md); padding:8px 5px; text-align:center; }
+    .macro-pill-label { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:3px; }
+    .macro-pill-value { font-size:0.88rem; font-weight:800; margin-bottom:3px; }
+    .macro-pill-sub   { font-size:0.58rem; color:var(--text-3); }
 
     /* CALORIE RING */
     .calorie-row { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
@@ -253,6 +253,10 @@
     .cat-btn.active { background:rgba(14,165,233,0.15); border-color:rgba(14,165,233,0.4); color:var(--cyan); }
     .cat-btn:hover:not(.active) { background:rgba(255,255,255,0.07); }
 
+    /* MEAL CATEGORY BADGES */
+    .meal-cat-group { margin-bottom:12px; }
+    .meal-cat-header { display:flex; align-items:center; justify-content:space-between; font-size:0.78rem; font-weight:800; color:var(--orange); padding:4px 0 6px; border-bottom:1px dashed var(--border); margin-bottom:6px; }
+
     /* PREV RECORD */
     .prev-record {
       display:flex; flex-direction:column; gap:6px;
@@ -298,6 +302,7 @@
     .chip-amber  { background:rgba(245,158,11,0.12);  color:var(--amber);  border:1px solid rgba(245,158,11,0.25); }
     .chip-purple { background:rgba(168,85,247,0.12);  color:var(--purple); border:1px solid rgba(168,85,247,0.25); }
     .chip-orange { background:rgba(249,115,22,0.12);  color:var(--orange); border:1px solid rgba(249,115,22,0.25); }
+    .chip-pink   { background:rgba(236,72,153,0.12);  color:var(--pink);   border:1px solid rgba(236,72,153,0.25); }
 
     /* EMPTY STATE */
     .empty-state { text-align:center; padding:26px 16px; color:var(--text-3); font-size:0.83rem; line-height:1.6; }
@@ -344,10 +349,10 @@
     .unit-btn:hover { background:rgba(56,189,248,0.12); border-color:rgba(56,189,248,0.3); color:var(--cyan); }
 
     /* PFC PREVIEW */
-    .pfc-auto-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:10px; }
-    .pfc-auto-cell { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--r-md); padding:7px 5px; text-align:center; }
-    .pfc-auto-label { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:3px; }
-    .pfc-auto-val   { font-size:0.9rem; font-weight:800; }
+    .pfc-auto-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin-bottom:10px; }
+    .pfc-auto-cell { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--r-md); padding:6px 3px; text-align:center; }
+    .pfc-auto-label { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
+    .pfc-auto-val   { font-size:0.83rem; font-weight:800; }
 
     /* FOOD SELECTED CARD */
     .food-selected-card {
@@ -477,12 +482,19 @@
     /* CHARTS */
     .chart-wrap { position:relative; height:190px; }
 
+    /* PWA BANNER */
+    .pwa-banner {
+      background:linear-gradient(135deg,rgba(14,165,233,0.15),rgba(99,102,241,0.15));
+      border:1px solid rgba(56,189,248,0.3); border-radius:var(--r-lg);
+      padding:12px 14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .pwa-banner-text { font-size:0.78rem; font-weight:600; color:var(--text-1); }
+    .pwa-banner-sub  { font-size:0.65rem; color:var(--text-3); margin-top:2px; }
+
     /* MISC */
     .divider { height:1px; background:var(--border); margin:12px 0; }
     .section-title { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); margin-bottom:9px; }
     .hidden { display:none !important; }
-    .spin-anim { animation:spinAnim 1s linear infinite; }
-    @keyframes spinAnim { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
   </style>
 </head>
 <body>
@@ -507,6 +519,15 @@
 
 <!-- ======== PAGE: DASHBOARD ======== -->
 <section class="page active" id="page-dashboard">
+
+  <!-- PWA INSTALL PROMPT BANNER -->
+  <div id="pwa-banner" class="pwa-banner hidden">
+    <div>
+      <div class="pwa-banner-text">📱 ホーム画面に追加してアプリとして使う</div>
+      <div class="pwa-banner-sub">爆速起動・オフライン快適動作</div>
+    </div>
+    <button id="pwa-install-btn" class="btn btn-cyan btn-sm">追加する</button>
+  </div>
 
   <!-- CALORIE BALANCE SUMMARY CARD -->
   <div class="balance-card">
@@ -567,7 +588,7 @@
       </div>
       <div class="calorie-ring-meta">
         <div class="calorie-ring-title">本日の摂取カロリー</div>
-        <div class="calorie-ring-sub">目標 <strong id="dash-cal-target">2400</strong> kcal</div>
+        <div class="calorie-ring-sub">目標 <strong id="dash-cal-target">2000</strong> kcal</div>
         <div class="calorie-ring-sub" style="margin-top:4px;">達成率 <strong id="dash-cal-pct" style="color:var(--orange);">0%</strong></div>
       </div>
     </div>
@@ -576,19 +597,25 @@
         <div class="macro-pill-label" style="color:var(--green);">P タンパク</div>
         <div class="macro-pill-value" id="dash-p-val" style="color:var(--green);">0g</div>
         <div class="progress-track" style="margin-bottom:4px;height:4px;"><div id="dash-p-bar" class="progress-fill fill-green" style="width:0%"></div></div>
-        <div class="macro-pill-sub">目標 <span id="dash-p-tgt">140g</span></div>
+        <div class="macro-pill-sub">目標 <span id="dash-p-tgt">130g</span></div>
       </div>
       <div class="macro-pill">
         <div class="macro-pill-label" style="color:var(--amber);">F 脂質</div>
         <div class="macro-pill-value" id="dash-f-val" style="color:var(--amber);">0g</div>
         <div class="progress-track" style="margin-bottom:4px;height:4px;"><div id="dash-f-bar" class="progress-fill fill-amber" style="width:0%"></div></div>
-        <div class="macro-pill-sub">目標 <span id="dash-f-tgt">60g</span></div>
+        <div class="macro-pill-sub">目標 <span id="dash-f-tgt">50g</span></div>
       </div>
       <div class="macro-pill">
         <div class="macro-pill-label" style="color:var(--cyan);">C 炭水化物</div>
         <div class="macro-pill-value" id="dash-c-val" style="color:var(--cyan);">0g</div>
         <div class="progress-track" style="margin-bottom:4px;height:4px;"><div id="dash-c-bar" class="progress-fill fill-cyan" style="width:0%"></div></div>
-        <div class="macro-pill-sub">目標 <span id="dash-c-tgt">265g</span></div>
+        <div class="macro-pill-sub">目標 <span id="dash-c-tgt">250g</span></div>
+      </div>
+      <div class="macro-pill">
+        <div class="macro-pill-label" style="color:var(--pink);">Fib 食物繊維</div>
+        <div class="macro-pill-value" id="dash-fib-val" style="color:var(--pink);">0g</div>
+        <div class="progress-track" style="margin-bottom:4px;height:4px;"><div id="dash-fib-bar" class="progress-fill fill-pink" style="width:0%"></div></div>
+        <div class="macro-pill-sub">目標 <span>20g</span></div>
       </div>
     </div>
   </div>
@@ -666,8 +693,14 @@
         トレーニング記録
       </div>
       <button id="custom-ex-open-btn" class="btn btn-ghost btn-sm">
-        <i data-lucide="plus" style="width:12px;height:12px;"></i> 追加
+        <i data-lucide="plus" style="width:12px;height:12px;"></i> 種目追加
       </button>
+    </div>
+
+    <!-- DATE SELECTOR FOR PAST WORKOUT LOGS -->
+    <div class="form-group">
+      <label class="form-label">記録日</label>
+      <input type="date" id="workout-date-input" class="form-control">
     </div>
 
     <div class="form-label" style="margin-bottom:5px;">① 器具・タイプ</div>
@@ -781,7 +814,7 @@
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
         <span style="font-size:0.75rem;color:var(--text-2);font-weight:600;">CALORIES</span>
         <div><strong id="meal-cal-num" style="color:var(--orange);font-size:1.15rem;">0</strong>
-          <span style="color:var(--text-3);font-size:0.85rem;"> / <span id="meal-cal-tgt">2400</span> kcal</span></div>
+          <span style="color:var(--text-3);font-size:0.85rem;"> / <span id="meal-cal-tgt">2000</span> kcal</span></div>
       </div>
       <div class="progress-track" style="height:9px;"><div id="meal-cal-bar" class="progress-fill fill-orange" style="width:0%;"></div></div>
     </div>
@@ -789,23 +822,30 @@
       <div>
         <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:4px;">
           <span style="color:var(--green);font-weight:700;">P — タンパク質</span>
-          <span><strong id="meal-p-num">0g</strong> / <span id="meal-p-tgt">140g</span></span>
+          <span><strong id="meal-p-num">0g</strong> / <span id="meal-p-tgt">130g</span></span>
         </div>
         <div class="progress-track" style="height:5px;"><div id="meal-p-bar" class="progress-fill fill-green" style="width:0%;"></div></div>
       </div>
       <div>
         <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:4px;">
           <span style="color:var(--amber);font-weight:700;">F — 脂質</span>
-          <span><strong id="meal-f-num">0g</strong> / <span id="meal-f-tgt">60g</span></span>
+          <span><strong id="meal-f-num">0g</strong> / <span id="meal-f-tgt">50g</span></span>
         </div>
         <div class="progress-track" style="height:5px;"><div id="meal-f-bar" class="progress-fill fill-amber" style="width:0%;"></div></div>
       </div>
       <div>
         <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:4px;">
           <span style="color:var(--cyan);font-weight:700;">C — 炭水化物</span>
-          <span><strong id="meal-c-num">0g</strong> / <span id="meal-c-tgt">265g</span></span>
+          <span><strong id="meal-c-num">0g</strong> / <span id="meal-c-tgt">250g</span></span>
         </div>
         <div class="progress-track" style="height:5px;"><div id="meal-c-bar" class="progress-fill fill-cyan" style="width:0%;"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:4px;">
+          <span style="color:var(--pink);font-weight:700;">Fib — 食物繊維</span>
+          <span><strong id="meal-fib-num">0g</strong> / <span>20g</span></span>
+        </div>
+        <div class="progress-track" style="height:5px;"><div id="meal-fib-bar" class="progress-fill fill-pink" style="width:0%;"></div></div>
       </div>
     </div>
   </div>
@@ -818,7 +858,7 @@
   </div>
 
   <div class="card">
-    <div class="section-title">本日の食事ログ</div>
+    <div class="section-title">本日の食事ログ（朝・昼・夕・間食）</div>
     <div id="meal-history-list"></div>
   </div>
 </section>
@@ -1025,7 +1065,7 @@
       </button>
     </div>
     <div class="settings-tabs">
-      <button class="settings-tab-btn active" data-panel="panel-goals">🎯 目標PFC</button>
+      <button class="settings-tab-btn active" data-panel="panel-goals">🎯 目標PFC (スマート連動)</button>
       <button class="settings-tab-btn" data-panel="panel-backup">💾 バックアップ</button>
     </div>
     <div id="panel-goals" class="settings-panel active">
@@ -1054,17 +1094,34 @@
           <option value="bulking">増量 (Bulking)</option>
         </select>
       </div>
-      <button id="calc-tdee-btn" class="btn btn-ghost btn-md" style="width:100%;margin-bottom:10px;">
+      <button id="calc-tdee-btn" class="btn btn-ghost btn-md" style="width:100%;margin-bottom:12px;">
         <i data-lucide="calculator" style="width:13px;height:13px;"></i> TDEE から自動計算
       </button>
-      <div class="input-grid-2" style="margin-bottom:8px;">
-        <div class="form-group"><label class="form-label" style="color:var(--orange);">目標カロリー</label><input type="number" id="goal-cal" class="form-control" placeholder="2000"></div>
-        <div class="form-group"><label class="form-label" style="color:var(--green);">タンパク質 g</label><input type="number" id="goal-p" class="form-control" placeholder="130"></div>
+
+      <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.2);border-radius:var(--r-md);padding:10px;margin-bottom:12px;">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--cyan);margin-bottom:6px;">⚡ スマート自動連動計算</div>
+        <div style="font-size:0.65rem;color:var(--text-3);margin-bottom:8px;">カロリーと2項目を入力すると、残りの1項目が自動補完されます。</div>
+        
+        <div class="form-group">
+          <label class="form-label" style="color:var(--orange);">目標カロリー (kcal)</label>
+          <input type="number" id="goal-cal" class="form-control" placeholder="2000">
+        </div>
+        <div class="input-grid-3">
+          <div class="form-group">
+            <label class="form-label" style="color:var(--green);">P (g)</label>
+            <input type="number" id="goal-p" class="form-control" placeholder="130">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:var(--amber);">F (g)</label>
+            <input type="number" id="goal-f" class="form-control" placeholder="50">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:var(--cyan);">C (g)</label>
+            <input type="number" id="goal-c" class="form-control" placeholder="250">
+          </div>
+        </div>
       </div>
-      <div class="input-grid-2" style="margin-bottom:12px;">
-        <div class="form-group"><label class="form-label" style="color:var(--amber);">脂質 g</label><input type="number" id="goal-f" class="form-control" placeholder="50"></div>
-        <div class="form-group"><label class="form-label" style="color:var(--cyan);">炭水化物 g</label><input type="number" id="goal-c" class="form-control" placeholder="250"></div>
-      </div>
+
       <button id="save-goals-btn" class="btn btn-cyan btn-lg">
         <i data-lucide="save" style="width:15px;height:15px;"></i> 目標を保存
       </button>
@@ -1093,6 +1150,24 @@
         <i data-lucide="x" style="width:15px;height:15px;"></i>
       </button>
     </div>
+
+    <!-- MEAL TYPE & DATE SELECTION -->
+    <div class="input-grid-2" style="margin-bottom:10px;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">日付</label>
+        <input type="date" id="modal-meal-date" class="form-control">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">区分</label>
+        <select id="modal-meal-category" class="form-select">
+          <option value="朝食" selected>🌅 朝食</option>
+          <option value="昼食">☀️ 昼食</option>
+          <option value="夕食">🌙 夕食</option>
+          <option value="間食">☕ 間食/サプリ</option>
+        </select>
+      </div>
+    </div>
+
     <div id="pending-section" class="pending-section hidden">
       <div class="pending-title">
         <span>追加中のリスト <span id="pending-count">0</span>品</span>
@@ -1104,13 +1179,14 @@
       <div class="pending-total-row">
         <span class="pending-total-label">合計</span>
         <span class="pending-total-val" id="pending-total-cal">0 kcal</span>
-        <span style="font-size:0.72rem;color:var(--text-3);">P<span id="pending-total-p">0</span> F<span id="pending-total-f">0</span> C<span id="pending-total-c">0</span></span>
+        <span style="font-size:0.72rem;color:var(--text-3);">P<span id="pending-total-p">0</span> F<span id="pending-total-f">0</span> C<span id="pending-total-c">0</span> Fib<span id="pending-total-fib">0</span></span>
       </div>
     </div>
+
     <div class="form-group">
-      <label class="form-label">食材を検索</label>
+      <label class="form-label">食材を検索（★登録食材・キノコ・プロテイン等）</label>
       <div class="autocomplete-wrap">
-        <input type="text" id="food-search" class="form-control" placeholder="鶏むね肉、白米、卵… " autocomplete="off">
+        <input type="text" id="food-search" class="form-control" placeholder="例: ベースブレッド、卵、サラダチキン… " autocomplete="off">
         <div id="food-dropdown" class="food-dropdown hidden"></div>
       </div>
     </div>
@@ -1124,7 +1200,7 @@
     </div>
     <div class="input-grid-2" style="margin-bottom:10px;">
       <div class="form-group" style="margin-bottom:0;">
-        <label class="form-label">グラム数</label>
+        <label class="form-label">グラム数 / ml数</label>
         <input type="number" id="food-grams" class="form-control" placeholder="100" min="1">
       </div>
       <div style="display:flex;align-items:flex-end;">
@@ -1138,6 +1214,7 @@
       <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--green);">P(g)</div><div class="pfc-auto-val" id="pfc-p-preview" style="color:var(--green);">—</div></div>
       <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--amber);">F(g)</div><div class="pfc-auto-val" id="pfc-f-preview" style="color:var(--amber);">—</div></div>
       <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--cyan);">C(g)</div><div class="pfc-auto-val" id="pfc-c-preview" style="color:var(--cyan);">—</div></div>
+      <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--pink);">Fib(g)</div><div class="pfc-auto-val" id="pfc-fib-preview" style="color:var(--pink);">—</div></div>
     </div>
     <button id="add-to-list-btn" class="btn btn-amber btn-lg" style="margin-bottom:10px;">
       <i data-lucide="plus" style="width:16px;height:16px;"></i>
@@ -1146,7 +1223,7 @@
     <div class="or-divider">または手動入力</div>
     <div class="form-group">
       <label class="form-label">料理名</label>
-      <input type="text" id="modal-meal-name" class="form-control" placeholder="例: 鶏胸肉サラダ">
+      <input type="text" id="modal-meal-name" class="form-control" placeholder="例: キノコと野菜の炒め物">
     </div>
     <div class="input-grid-2" style="margin-bottom:8px;">
       <div class="form-group"><label class="form-label" style="color:var(--orange);">カロリー kcal</label><input type="number" id="modal-meal-cal" class="form-control" placeholder="0"></div>
