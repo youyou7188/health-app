@@ -1,7 +1,8 @@
 /* ============================================================
    FitPulse — app.js  (完全オフライン版)
+   - ベースブレッド公式全8種 栄養成分完全修正版（2026最新公式数値）
    - 初回プロファイル入力（未設定時にダイアログ自動表示）
-   - 食材DB（ベースブレッド全種 + 定番単位設定含む）
+   - 食材DB（定番単位設定含む）
    - 種目DB（筋トレ250+種目 + 有酸素運動）
    - ⚡ 前回値の1タップコピー機能
    - 📈 週平均・月平均体重トレンド算出
@@ -16,16 +17,17 @@
 // ─── Storage Keys ───────────────────────────────────────────
 const LS = { WORKOUTS:'fp_workouts', MEALS:'fp_meals', INBODY:'fp_inbody', PROFILE:'fp_profile', CUSTOM_EX:'fp_custom_ex' };
 
-// ─── FOOD DATABASE ───────────────────────────────────────────
+// ─── FOOD DATABASE (ベースブレッド全種は公式1袋80g基準から100g正確逆算) ─────────────────
 const FOOD_DB_RAW = [
-  ['ベースブレッド プレーン',205,13.5,5.4,26.0,[['1袋',80]]],
-  ['ベースブレッド チョコレート',232,13.5,7.3,28.0,[['1袋',80]]],
-  ['ベースブレッド メープル',235,13.5,7.7,27.1,[['1袋(2個)',80]]],
-  ['ベースブレッド シナモン',238,13.5,8.1,26.8,[['1袋(2個)',80]]],
-  ['ベースブレッド カレー',212,13.5,7.4,24.0,[['1袋',80]]],
-  ['ベースブレッド ミニ食パン プレーン',226,13.5,5.6,29.8,[['1袋(2枚)',80]]],
-  ['ベースブレッド ミニ食パン レーズン',244,13.5,6.1,33.5,[['1袋(2枚)',80]]],
-  ['ベースブレッド リッチ',210,13.5,5.2,26.5,[['1袋',80]]],
+  // [商品名, 100gカロリー, 100gP, 100gF, 100gC, [[単位名, グラム数]]]
+  ['ベースブレッド プレーン',250.0,16.9,8.8,28.1,[['1袋(80g)',80]]],
+  ['ベースブレッド チョコレート',332.5,17.0,11.4,44.3,[['1袋(80g)',80]]],
+  ['ベースブレッド メープル',313.8,16.9,10.8,41.5,[['1袋/2個(80g)',80]]],
+  ['ベースブレッド シナモン',325.0,17.0,11.8,33.9,[['1袋/2個(80g)',80]]],
+  ['ベースブレッド カレー',338.8,17.0,10.4,37.5,[['1袋(80g)',80]]],
+  ['ベースブレッド ミニ食パン プレーン',286.3,16.9,8.9,37.8,[['1袋/2枚(80g)',80]]],
+  ['ベースブレッド ミニ食パン レーズン',351.3,16.9,9.3,47.6,[['1袋/2枚(80g)',80]]],
+  ['ベースブレッド リッチ',276.3,16.9,9.0,33.0,[['1袋(80g)',80]]],
 
   ['鶏卵（全卵）',151,12.3,10.3,0.3,[['M1個(約50g)',50],['L1個(約60g)',60],['2個',100]]],
   ['ゆで卵',151,12.9,10.0,0.3,[['1個',50],['2個',100]]],
@@ -155,7 +157,7 @@ const state = {
   workouts : [],
   meals    : [],
   inbody   : [],
-  profile  : null, // Initialized as null for first setup
+  profile  : null,
   goals    : { cal:2000, p:130, f:50, c:250 },
   customEx : {},
   selectedEquip: 'バーベル',
@@ -243,7 +245,6 @@ function handleFirstSetupSubmit(e) {
   state.profile = { weight, height, age, gender, activity, goal:'maintenance' };
   state.goals = { cal: tdee, p, f, c };
 
-  // Add initial weight to InBody log if empty
   if (state.inbody.length === 0) {
     state.inbody.push({ id: Date.now(), date: todayKey(), weight, fat: 0, muscle: 0, note: '初期設定データ' });
   }
@@ -515,7 +516,7 @@ function showFoodDropdown(results) {
   drop.innerHTML = results.map((f,i)=>`
     <div class="food-drop-item" data-idx="${i}">
       <div class="food-drop-name">${f.name}</div>
-      <div class="food-drop-meta">${f.cal}kcal · P${f.p}g · F${f.f}g · C${f.c}g（100gあたり）</div>
+      <div class="food-drop-meta">${f.cal.toFixed(0)}kcal · P${f.p.toFixed(1)}g · F${f.f.toFixed(1)}g · C${f.c.toFixed(1)}g（100gあたり）</div>
     </div>
   `).join('');
   drop.querySelectorAll('.food-drop-item').forEach((el,i)=>{
@@ -530,7 +531,7 @@ function selectFood(food) {
   state.selectedFood = food;
   qs('#food-search').value = food.name;
   qs('#food-selected-name').textContent = food.name;
-  qs('#food-selected-meta').textContent = `100gあたり: ${food.cal}kcal · P${food.p}g · F${food.f}g · C${food.c}g`;
+  qs('#food-selected-meta').textContent = `100gあたり: ${food.cal.toFixed(0)}kcal · P${food.p.toFixed(1)}g · F${food.f.toFixed(1)}g · C${food.c.toFixed(1)}g`;
   qs('#food-selected-card').classList.remove('hidden');
 
   const uWrap = qs('#unit-btns-wrap');
