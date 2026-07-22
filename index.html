@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="トレーニング＆PFC管理 PWA（完全オフライン）">
+  <title>FitPulse — トレーニング & PFC管理</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --bg-base:#0a0e1a; --bg-surface:#111827; --bg-card:#1a2235;
+      --bg-card-hover:#1e2a40; --bg-input:#0d1525;
+      --border:rgba(255,255,255,0.08); --border-hover:rgba(255,255,255,0.15); --border-focus:#38bdf8;
+      --text-1:#f1f5f9; --text-2:#94a3b8; --text-3:#64748b;
+      --cyan:#38bdf8; --green:#22c55e; --amber:#f59e0b;
+      --orange:#f97316; --rose:#f43f5e; --purple:#a855f7;
+      --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:24px; --r-full:9999px;
+      --shadow-sm:0 2px 8px rgba(0,0,0,0.4);
+      --font:'Inter','Noto Sans JP',system-ui,sans-serif;
+      --nav-h:68px; --header-h:56px;
+    }
+    html { background:var(--bg-base); overflow-x:hidden; }
+    body {
+      font-family:var(--font); background:var(--bg-base); color:var(--text-1);
+      min-height:100vh;
+      padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+      padding-top:var(--header-h); overflow-x:hidden;
+    }
+
+    /* HEADER */
+    .app-header {
+      position:fixed; top:0; left:0; right:0; height:var(--header-h); z-index:200;
+      background:rgba(10,14,26,0.96); backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between; padding:0 16px;
+    }
+    .header-brand { display:flex; align-items:center; gap:10px; }
+    .header-logo {
+      width:34px; height:34px; border-radius:10px;
+      background:linear-gradient(135deg,#0ea5e9,#6366f1);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 0 16px rgba(56,189,248,0.35); flex-shrink:0;
+    }
+    .header-title { font-size:1rem; font-weight:700; letter-spacing:-0.02em; }
+    .header-sub   { font-size:0.62rem; color:var(--text-3); margin-top:1px; }
+
+    /* NAV */
+    .app-nav {
+      position:fixed; bottom:0; left:0; right:0; height:var(--nav-h); z-index:200;
+      background:rgba(10,14,26,0.97); backdrop-filter:blur(20px);
+      border-top:1px solid var(--border);
+      display:grid; grid-template-columns:repeat(5,1fr);
+      padding-bottom:env(safe-area-inset-bottom);
+    }
+    .nav-item {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:3px; background:none; border:none; color:var(--text-3);
+      font-family:var(--font); font-size:0.62rem; font-weight:600;
+      cursor:pointer; padding:8px 4px; transition:all 0.2s; position:relative;
+    }
+    .nav-item::before {
+      content:''; position:absolute; bottom:0; left:25%; right:25%;
+      height:2px; border-radius:2px 2px 0 0;
+      background:var(--cyan); opacity:0; transition:opacity 0.2s;
+    }
+    .nav-item.active { color:var(--cyan); }
+    .nav-item.active::before { opacity:1; }
+    .nav-item svg { transition:transform 0.2s; }
+    .nav-item.active svg { transform:translateY(-1px); filter:drop-shadow(0 0 5px rgba(56,189,248,0.5)); }
+
+    /* PAGE */
+    .page { max-width:520px; margin:0 auto; padding:14px 14px 24px; display:none; }
+    .page.active { display:block; }
+    @media(min-width:600px) { .page { padding:20px; } }
+
+    /* CARD */
+    .card {
+      background:var(--bg-card); border:1px solid var(--border);
+      border-radius:var(--r-lg); padding:14px; margin-bottom:12px;
+      box-shadow:var(--shadow-sm);
+    }
+    .card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .card-title { display:flex; align-items:center; gap:8px; font-size:0.92rem; font-weight:700; }
+    .card-title-icon { width:28px; height:28px; border-radius:var(--r-sm); display:flex; align-items:center; justify-content:center; }
+
+    /* HERO */
+    .hero-banner {
+      background:linear-gradient(135deg,rgba(14,165,233,0.15),rgba(99,102,241,0.12),rgba(168,85,247,0.1));
+      border:1px solid rgba(56,189,248,0.2); border-radius:var(--r-xl);
+      padding:18px; margin-bottom:12px; position:relative; overflow:hidden;
+    }
+    .hero-banner::before {
+      content:''; position:absolute; top:-40%; right:-20%; width:200px; height:200px;
+      background:radial-gradient(circle,rgba(56,189,248,0.12),transparent 70%); pointer-events:none;
+    }
+    .hero-date  { font-size:0.72rem; color:var(--text-3); margin-bottom:4px; font-weight:500; }
+    .hero-title { font-size:1.2rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:4px; }
+    .hero-sub   { font-size:0.78rem; color:var(--text-2); }
+
+    /* BUTTONS */
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:6px;
+      font-family:var(--font); font-weight:600; border:none;
+      cursor:pointer; transition:all 0.2s cubic-bezier(0.4,0,0.2,1); outline:none; white-space:nowrap;
+    }
+    .btn:active:not(:disabled) { transform:scale(0.96); }
+    .btn:disabled { opacity:0.45; cursor:not-allowed; }
+    .btn-sm   { padding:6px 12px; font-size:0.78rem; border-radius:var(--r-sm); }
+    .btn-md   { padding:10px 14px; font-size:0.86rem; border-radius:var(--r-md); }
+    .btn-lg   { padding:13px 18px; font-size:0.92rem; border-radius:var(--r-md); width:100%; }
+    .btn-icon { width:34px; height:34px; padding:0; border-radius:var(--r-md); flex-shrink:0; }
+    .btn-ghost  { background:rgba(255,255,255,0.06); color:var(--text-2); border:1px solid var(--border); }
+    .btn-ghost:hover { background:rgba(255,255,255,0.1); }
+    .btn-cyan   { background:linear-gradient(135deg,#0ea5e9,#0284c7); color:#fff; box-shadow:0 3px 12px rgba(14,165,233,0.35); }
+    .btn-cyan:hover { box-shadow:0 4px 16px rgba(14,165,233,0.5); }
+    .btn-green  { background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; box-shadow:0 3px 12px rgba(34,197,94,0.35); }
+    .btn-orange { background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; box-shadow:0 3px 12px rgba(249,115,22,0.35); }
+    .btn-amber  { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; }
+    .btn-danger { background:linear-gradient(135deg,#f43f5e,#e11d48); color:#fff; }
+
+    /* FORM */
+    .form-group { margin-bottom:10px; }
+    .form-label {
+      display:block; font-size:0.72rem; font-weight:700;
+      color:var(--text-2); margin-bottom:5px;
+      text-transform:uppercase; letter-spacing:0.04em;
+    }
+    .form-control, .form-select {
+      width:100%; padding:10px 12px;
+      background:var(--bg-input); border:1px solid var(--border);
+      border-radius:var(--r-md); color:var(--text-1);
+      font-size:0.9rem; font-family:var(--font); outline:none;
+      transition:border-color 0.2s,box-shadow 0.2s; -webkit-appearance:none;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(56,189,248,0.15);
+    }
+    .form-select option { background:#1a2235; }
+    .form-control::placeholder { color:var(--text-3); }
+
+    /* PROGRESS */
+    .progress-track { width:100%; height:8px; background:rgba(255,255,255,0.06); border-radius:var(--r-full); overflow:hidden; }
+    .progress-fill  { height:100%; border-radius:var(--r-full); transition:width 0.6s cubic-bezier(0.4,0,0.2,1); }
+    .fill-cyan   { background:linear-gradient(90deg,#38bdf8,#0ea5e9); }
+    .fill-green  { background:linear-gradient(90deg,#4ade80,#22c55e); }
+    .fill-amber  { background:linear-gradient(90deg,#fbbf24,#f59e0b); }
+    .fill-orange { background:linear-gradient(90deg,#fb923c,#f97316); }
+    .fill-purple { background:linear-gradient(90deg,#c084fc,#a855f7); }
+
+    /* MACRO PILLS */
+    .macro-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .macro-pill { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--r-md); padding:9px 7px; }
+    .macro-pill-label { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px; }
+    .macro-pill-value { font-size:0.95rem; font-weight:800; margin-bottom:4px; }
+    .macro-pill-sub   { font-size:0.62rem; color:var(--text-3); }
+
+    /* CALORIE RING */
+    .calorie-row { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+    .calorie-ring-wrap { position:relative; width:74px; height:74px; flex-shrink:0; }
+    .calorie-ring-wrap svg { transform:rotate(-90deg); }
+    .calorie-ring-center {
+      position:absolute; inset:0;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1.1;
+    }
+    .calorie-ring-num  { font-size:0.95rem; font-weight:800; }
+    .calorie-ring-unit { font-size:0.56rem; color:var(--text-3); font-weight:600; }
+    .calorie-ring-meta { flex:1; }
+    .calorie-ring-title { font-size:0.82rem; font-weight:700; margin-bottom:3px; }
+    .calorie-ring-sub   { font-size:0.73rem; color:var(--text-2); }
+
+    /* QUICK CARDS */
+    .quick-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+    .quick-card {
+      background:var(--bg-card); border:1px solid var(--border);
+      border-radius:var(--r-lg); padding:12px; cursor:pointer; transition:all 0.2s;
+    }
+    .quick-card:hover { background:var(--bg-card-hover); border-color:var(--border-hover); transform:translateY(-1px); }
+    .quick-card:active { transform:scale(0.97); }
+    .quick-card-icon { width:34px; height:34px; border-radius:var(--r-sm); display:flex; align-items:center; justify-content:center; margin-bottom:7px; }
+    .quick-card-title { font-size:0.82rem; font-weight:700; margin-bottom:2px; }
+    .quick-card-sub   { font-size:0.7rem; color:var(--text-2); }
+
+    /* TIMER */
+    .timer-card {
+      background:var(--bg-card); border:1px solid var(--border);
+      border-radius:var(--r-lg); padding:12px; margin-bottom:12px; transition:border-color 0.3s;
+    }
+    .timer-card.running { border-color:rgba(56,189,248,0.4); box-shadow:0 0 20px rgba(56,189,248,0.08); }
+    .timer-layout { display:grid; grid-template-columns:76px 1fr; gap:12px; align-items:center; }
+    .timer-ring-wrap { position:relative; width:76px; height:76px; }
+    .timer-ring-wrap svg { transform:rotate(-90deg); }
+    .timer-display {
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      font-size:1.05rem; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
+    }
+    .timer-presets { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin-bottom:7px; }
+    .timer-preset-btn {
+      padding:5px 4px; font-size:0.7rem; font-weight:700; border-radius:var(--r-sm);
+      background:rgba(255,255,255,0.05); border:1px solid var(--border);
+      color:var(--text-2); cursor:pointer; font-family:var(--font); transition:all 0.2s; text-align:center;
+    }
+    .timer-preset-btn:hover { background:rgba(56,189,248,0.12); color:var(--cyan); border-color:rgba(56,189,248,0.3); }
+    .timer-actions { display:flex; gap:6px; }
+
+    /* EQUIPMENT TABS */
+    .equip-tabs { display:flex; gap:5px; overflow-x:auto; padding-bottom:6px; margin-bottom:10px; scrollbar-width:none; }
+    .equip-tabs::-webkit-scrollbar { display:none; }
+    .equip-btn {
+      flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:2px;
+      padding:7px 11px; border-radius:var(--r-md); border:1px solid var(--border);
+      background:rgba(255,255,255,0.04); color:var(--text-2);
+      cursor:pointer; font-family:var(--font); transition:all 0.2s; white-space:nowrap;
+    }
+    .equip-btn .equip-icon { font-size:0.95rem; }
+    .equip-btn .equip-name { font-size:0.67rem; font-weight:700; }
+    .equip-btn.active { background:rgba(14,165,233,0.15); border-color:rgba(14,165,233,0.4); color:var(--cyan); }
+    .equip-btn:hover:not(.active) { background:rgba(255,255,255,0.07); }
+
+    /* CAT TABS */
+    .cat-tabs { display:flex; gap:5px; overflow-x:auto; padding-bottom:5px; margin-bottom:10px; scrollbar-width:none; }
+    .cat-tabs::-webkit-scrollbar { display:none; }
+    .cat-btn {
+      flex-shrink:0; padding:5px 11px; font-size:0.73rem; font-weight:700;
+      border-radius:var(--r-full); border:1px solid var(--border);
+      background:rgba(255,255,255,0.04); color:var(--text-2);
+      cursor:pointer; font-family:var(--font); transition:all 0.2s; white-space:nowrap;
+    }
+    .cat-btn.active { background:rgba(14,165,233,0.15); border-color:rgba(14,165,233,0.4); color:var(--cyan); }
+    .cat-btn:hover:not(.active) { background:rgba(255,255,255,0.07); }
+
+    /* PREV RECORD */
+    .prev-record {
+      display:flex; align-items:flex-start; gap:8px;
+      background:rgba(56,189,248,0.07); border:1px solid rgba(56,189,248,0.2);
+      border-radius:var(--r-md); padding:9px 11px; margin-bottom:10px;
+      font-size:0.78rem; color:var(--text-2);
+    }
+
+    /* 1RM ROW */
+    .rm-row {
+      display:flex; justify-content:space-between; align-items:center;
+      background:rgba(0,0,0,0.2); border-radius:var(--r-md);
+      padding:8px 11px; margin-bottom:10px; font-size:0.78rem; flex-wrap:wrap; gap:4px;
+    }
+    .rm-val { font-size:1rem; font-weight:800; }
+
+    /* LOG ITEM */
+    .log-item {
+      display:flex; align-items:flex-start; justify-content:space-between;
+      gap:10px; background:rgba(0,0,0,0.2); border:1px solid var(--border);
+      border-radius:var(--r-md); padding:10px 12px; margin-bottom:8px;
+    }
+    .log-item:last-child { margin-bottom:0; }
+    .log-item-meta  { font-size:0.68rem; color:var(--text-3); margin-bottom:3px; }
+    .log-item-title { font-size:0.88rem; font-weight:700; margin-bottom:4px; }
+    .log-item-stats { display:flex; flex-wrap:wrap; gap:5px; font-size:0.73rem; }
+    .del-btn {
+      flex-shrink:0; width:28px; height:28px; display:flex; align-items:center; justify-content:center;
+      background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.15);
+      border-radius:var(--r-sm); cursor:pointer; transition:all 0.2s; color:var(--rose);
+    }
+    .del-btn:hover { background:rgba(244,63,94,0.2); }
+
+    /* CHIPS */
+    .chip {
+      display:inline-flex; align-items:center; gap:3px;
+      padding:2px 7px; border-radius:var(--r-full);
+      font-size:0.68rem; font-weight:700; letter-spacing:0.02em;
+    }
+    .chip-cyan   { background:rgba(56,189,248,0.12);  color:var(--cyan);   border:1px solid rgba(56,189,248,0.25); }
+    .chip-green  { background:rgba(34,197,94,0.12);   color:var(--green);  border:1px solid rgba(34,197,94,0.25); }
+    .chip-amber  { background:rgba(245,158,11,0.12);  color:var(--amber);  border:1px solid rgba(245,158,11,0.25); }
+    .chip-purple { background:rgba(168,85,247,0.12);  color:var(--purple); border:1px solid rgba(168,85,247,0.25); }
+    .chip-orange { background:rgba(249,115,22,0.12);  color:var(--orange); border:1px solid rgba(249,115,22,0.25); }
+
+    /* EMPTY STATE */
+    .empty-state { text-align:center; padding:26px 16px; color:var(--text-3); font-size:0.83rem; line-height:1.6; }
+
+    /* GRIDS */
+    .input-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+    .input-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .action-grid-1 { margin-bottom:12px; }
+
+    /* INBODY STATS */
+    .body-stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .body-stat { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--r-md); padding:11px 7px; text-align:center; }
+    .body-stat-label { font-size:0.66rem; color:var(--text-3); font-weight:600; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.03em; }
+    .body-stat-val   { font-size:1.25rem; font-weight:800; line-height:1; }
+    .body-stat-unit  { font-size:0.63rem; color:var(--text-3); margin-top:2px; }
+
+    /* AUTOCOMPLETE */
+    .autocomplete-wrap { position:relative; }
+    .food-dropdown {
+      position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:999;
+      background:#1a2235; border:1px solid var(--border);
+      border-radius:var(--r-md); max-height:210px; overflow-y:auto;
+      box-shadow:0 8px 24px rgba(0,0,0,0.5);
+      scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.1) transparent;
+    }
+    .food-dropdown::-webkit-scrollbar { width:4px; }
+    .food-dropdown::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+    .food-drop-item { padding:9px 12px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.12s; }
+    .food-drop-item:last-child { border-bottom:none; }
+    .food-drop-item:hover, .food-drop-item.selected { background:rgba(56,189,248,0.1); }
+    .food-drop-name { font-size:0.83rem; font-weight:600; color:var(--text-1); }
+    .food-drop-meta { font-size:0.68rem; color:var(--text-3); margin-top:2px; }
+    .food-drop-empty { padding:14px 12px; font-size:0.8rem; color:var(--text-3); text-align:center; }
+
+    /* UNIT BUTTONS */
+    .unit-btns-wrap { margin-bottom:8px; }
+    .unit-btns-label { font-size:0.68rem; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; }
+    .unit-btns { display:flex; flex-wrap:wrap; gap:5px; }
+    .unit-btn {
+      padding:5px 10px; border-radius:var(--r-full); font-size:0.72rem; font-weight:700;
+      background:rgba(255,255,255,0.06); border:1px solid var(--border);
+      color:var(--text-2); cursor:pointer; transition:all 0.2s; font-family:var(--font);
+    }
+    .unit-btn:hover { background:rgba(56,189,248,0.12); border-color:rgba(56,189,248,0.3); color:var(--cyan); }
+
+    /* PFC PREVIEW */
+    .pfc-auto-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:10px; }
+    .pfc-auto-cell { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--r-md); padding:7px 5px; text-align:center; }
+    .pfc-auto-label { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:3px; }
+    .pfc-auto-val   { font-size:0.9rem; font-weight:800; }
+
+    /* FOOD SELECTED CARD */
+    .food-selected-card {
+      background:rgba(56,189,248,0.07); border:1px solid rgba(56,189,248,0.2);
+      border-radius:var(--r-md); padding:9px 11px; margin-bottom:8px;
+    }
+    .food-selected-name { font-size:0.85rem; font-weight:700; color:var(--cyan); margin-bottom:3px; }
+    .food-selected-meta { font-size:0.7rem; color:var(--text-2); }
+
+    /* PENDING MEALS */
+    .pending-section {
+      background:rgba(249,115,22,0.06); border:1px solid rgba(249,115,22,0.2);
+      border-radius:var(--r-lg); padding:12px; margin-bottom:12px;
+    }
+    .pending-title { font-size:0.72rem; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; }
+    .pending-item {
+      display:flex; align-items:center; gap:8px;
+      background:rgba(0,0,0,0.2); border:1px solid var(--border);
+      border-radius:var(--r-md); padding:8px 10px; margin-bottom:5px;
+    }
+    .pending-item:last-of-type { margin-bottom:8px; }
+    .pending-item-info { flex:1; min-width:0; }
+    .pending-item-name   { font-size:0.82rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pending-item-macros { font-size:0.68rem; color:var(--text-3); margin-top:2px; }
+    .pending-total-row {
+      display:flex; justify-content:space-between; align-items:center;
+      border-top:1px solid rgba(249,115,22,0.2); padding-top:8px; margin-top:4px;
+      font-size:0.78rem;
+    }
+    .pending-total-label { color:var(--text-2); font-weight:600; }
+    .pending-total-val   { font-weight:800; color:var(--orange); }
+
+    /* OR DIVIDER */
+    .or-divider { display:flex; align-items:center; gap:10px; margin:12px 0; color:var(--text-3); font-size:0.73rem; }
+    .or-divider::before, .or-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    /* CALENDAR */
+    .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .cal-month-label { font-size:0.95rem; font-weight:800; }
+    .cal-nav-btn {
+      width:30px; height:30px; border-radius:var(--r-sm);
+      background:rgba(255,255,255,0.06); border:1px solid var(--border);
+      color:var(--text-2); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+    }
+    .cal-nav-btn:hover { background:rgba(255,255,255,0.1); }
+    .cal-weekdays { display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:3px; }
+    .cal-wd { text-align:center; font-size:0.63rem; font-weight:700; color:var(--text-3); padding:4px 0; }
+    .cal-wd:first-child { color:var(--rose); }
+    .cal-wd:last-child  { color:var(--cyan); }
+    .cal-days { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+    .cal-day {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:2px; padding:5px 2px; border-radius:var(--r-sm);
+      cursor:pointer; transition:background 0.15s; min-height:36px; position:relative;
+    }
+    .cal-day:hover { background:rgba(255,255,255,0.06); }
+    .cal-day.today .cal-day-num { color:var(--cyan); font-weight:800; }
+    .cal-day.selected { background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); }
+    .cal-day.selected .cal-day-num { color:var(--cyan); }
+    .cal-day-num  { font-size:0.78rem; font-weight:600; line-height:1; }
+    .cal-day-dots { display:flex; gap:2px; min-height:5px; }
+    .cal-dot { width:4px; height:4px; border-radius:50%; flex-shrink:0; }
+    .cal-day-empty { min-height:36px; }
+    .cal-legend { display:flex; gap:12px; margin-top:10px; justify-content:center; }
+    .cal-legend-item { display:flex; align-items:center; gap:4px; font-size:0.67rem; color:var(--text-3); }
+    .cal-legend-dot  { width:7px; height:7px; border-radius:50%; }
+
+    /* CAL DETAIL */
+    .cal-detail-card {
+      background:var(--bg-card); border:1px solid rgba(56,189,248,0.25);
+      border-radius:var(--r-lg); padding:14px; margin-bottom:12px;
+    }
+    .cal-detail-date { font-size:0.92rem; font-weight:800; color:var(--cyan); margin-bottom:12px; }
+    .cal-detail-section { margin-bottom:10px; }
+    .cal-detail-section-title { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-3); margin-bottom:6px; }
+    .cal-detail-empty { font-size:0.78rem; color:var(--text-3); }
+
+    /* MODAL */
+    .modal-overlay {
+      display:none; position:fixed; inset:0;
+      background:rgba(0,0,0,0.72); backdrop-filter:blur(6px);
+      z-index:500; align-items:flex-end; justify-content:center;
+    }
+    .modal-overlay.open { display:flex; animation:fadeIn 0.15s ease; }
+    .modal-sheet {
+      width:100%; max-width:520px; max-height:94vh; overflow-y:auto;
+      background:#111827; border-top-left-radius:22px; border-top-right-radius:22px;
+      border:1px solid var(--border); box-shadow:0 -8px 40px rgba(0,0,0,0.6);
+      animation:slideUp 0.25s cubic-bezier(0.4,0,0.2,1); padding:18px;
+    }
+    .modal-drag { width:40px; height:4px; background:rgba(255,255,255,0.15); border-radius:2px; margin:0 auto 14px; }
+    .modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+    .modal-title  { font-size:1.02rem; font-weight:800; }
+    @keyframes fadeIn  { from{opacity:0;} to{opacity:1;} }
+    @keyframes slideUp { from{transform:translateY(60px);opacity:0;} to{transform:translateY(0);opacity:1;} }
+
+    /* TOAST */
+    .toast-box {
+      position:fixed; top:calc(var(--header-h)+8px); left:50%; transform:translateX(-50%);
+      z-index:9999; display:flex; flex-direction:column; align-items:center; gap:6px;
+      width:92%; max-width:380px; pointer-events:none;
+    }
+    .toast {
+      pointer-events:auto; display:flex; align-items:center; gap:10px;
+      padding:11px 13px; background:#1e2a3e;
+      border:1px solid rgba(255,255,255,0.1); border-radius:var(--r-lg);
+      box-shadow:0 8px 24px rgba(0,0,0,0.5); font-size:0.83rem; width:100%;
+      animation:toastIn 0.25s ease;
+    }
+    .toast span { flex:1; }
+    .toast.success { border-left:3px solid var(--green); }
+    .toast.error   { border-left:3px solid var(--rose); }
+    .toast.warning { border-left:3px solid var(--amber); }
+    .toast.info    { border-left:3px solid var(--cyan); }
+    @keyframes toastIn { from{opacity:0;transform:translateY(-12px);} to{opacity:1;transform:translateY(0);} }
+
+    /* SETTINGS TABS */
+    .settings-tabs { display:flex; gap:4px; margin-bottom:14px; background:rgba(0,0,0,0.25); padding:4px; border-radius:var(--r-md); }
+    .settings-tab-btn {
+      flex:1; padding:7px 4px; border-radius:var(--r-sm); background:none; border:none;
+      color:var(--text-3); font-size:0.7rem; font-weight:700; cursor:pointer; font-family:var(--font); transition:all 0.2s;
+    }
+    .settings-tab-btn.active { background:var(--bg-card); color:var(--text-1); }
+    .settings-panel { display:none; }
+    .settings-panel.active { display:block; }
+
+    /* CHARTS */
+    .chart-wrap { position:relative; height:190px; }
+
+    /* MISC */
+    .divider { height:1px; background:var(--border); margin:12px 0; }
+    .section-title { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); margin-bottom:9px; }
+    .hidden { display:none !important; }
+    .spin-anim { animation:spinAnim 1s linear infinite; }
+    @keyframes spinAnim { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="header-brand">
+    <div class="header-logo">
+      <i data-lucide="dumbbell" style="width:17px;height:17px;color:#fff;"></i>
+    </div>
+    <div>
+      <div class="header-title">FitPulse</div>
+      <div class="header-sub">トレーニング &amp; PFC管理</div>
+    </div>
+  </div>
+  <button id="settings-open-btn" class="btn btn-ghost btn-icon" aria-label="設定">
+    <i data-lucide="settings" style="width:17px;height:17px;"></i>
+  </button>
+</header>
+
+<div id="toast-box" class="toast-box"></div>
+
+<!-- ======== PAGE: DASHBOARD ======== -->
+<section class="page active" id="page-dashboard">
+  <div class="hero-banner">
+    <div class="hero-date" id="hero-date"></div>
+    <div class="hero-title">今日もトレーニング！🔥</div>
+    <div class="hero-sub">目標に向かって着実に積み上げましょう</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-title-icon" style="background:rgba(249,115,22,0.15);">
+          <i data-lucide="flame" style="width:15px;height:15px;color:var(--orange);"></i>
+        </div>
+        本日のカロリー &amp; PFC
+      </div>
+      <button class="btn btn-ghost btn-sm nav-to" data-target="meal">記録 →</button>
+    </div>
+    <div class="calorie-row">
+      <div class="calorie-ring-wrap">
+        <svg width="74" height="74" viewBox="0 0 74 74">
+          <circle cx="37" cy="37" r="30" stroke="rgba(255,255,255,0.06)" stroke-width="6" fill="none"/>
+          <circle id="dash-cal-ring" cx="37" cy="37" r="30" stroke="var(--orange)" stroke-width="6" fill="none"
+            stroke-dasharray="188.5" stroke-dashoffset="188.5" stroke-linecap="round"
+            style="transition:stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1);"/>
+        </svg>
+        <div class="calorie-ring-center">
+          <div class="calorie-ring-num" id="dash-cal-num" style="color:var(--orange);">0</div>
+          <div class="calorie-ring-unit">kcal</div>
+        </div>
+      </div>
+      <div class="calorie-ring-meta">
+        <div class="calorie-ring-title">本日の摂取カロリー</div>
+        <div class="calorie-ring-sub">目標 <strong id="dash-cal-target">2400</strong> kcal</div>
+        <div class="calorie-ring-sub" style="margin-top:4px;">達成率 <strong id="dash-cal-pct" style="color:var(--orange);">0%</strong></div>
+      </div>
+    </div>
+    <div class="macro-grid">
+      <div class="macro-pill">
+        <div class="macro-pill-label" style="color:var(--green);">P タンパク</div>
+        <div class="macro-pill-value" id="dash-p-val" style="color:var(--green);">0g</div>
+        <div class="progress-track" style="margin-bottom:4px;height:4px;"><div id="dash-p-bar" class="progress-fill fill-green" style="width:0%"></div></div>
+        <div class="macro-pill-sub">目標 <span id="dash-p-tgt">140g</span></div>
+      </div>
+      <div class="macro-pill">
+        <div class="macro-pill-label" style="color:var(--amber);">F 脂質</div>
+        <div class="macro-pill-value" id="dash-f-val" style="color:var(--amber);">0g</div>
+        <div class="progress-track" style="margin-bottom:4px;height:4px;"><div id="dash-f-bar" class="progress-fill fill-amber" style="width:0%"></div></div>
+        <div class="macro-pill-sub">目標 <span id="dash-f-tgt">60g</span></div>
+      </div>
+      <div class="macro-pill">
+        <div class="macro-pill-label" style="color:var(--cyan);">C 炭水化物</div>
+        <div class="macro-pill-value" id="dash-c-val" style="color:var(--cyan);">0g</div>
+        <div class="progress-track" style="margin-bottom:4px;height:4px;"><div id="dash-c-bar" class="progress-fill fill-cyan" style="width:0%"></div></div>
+        <div class="macro-pill-sub">目標 <span id="dash-c-tgt">265g</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="quick-grid">
+    <div class="quick-card nav-to" data-target="training">
+      <div class="quick-card-icon" style="background:rgba(14,165,233,0.12);">
+        <i data-lucide="dumbbell" style="width:17px;height:17px;color:var(--cyan);"></i>
+      </div>
+      <div class="quick-card-title">筋トレ記録</div>
+      <div class="quick-card-sub" id="dash-workout-sub">本日 0 セット</div>
+    </div>
+    <div class="quick-card nav-to" data-target="inbody">
+      <div class="quick-card-icon" style="background:rgba(34,197,94,0.12);">
+        <i data-lucide="activity" style="width:17px;height:17px;color:var(--green);"></i>
+      </div>
+      <div class="quick-card-title">体組成</div>
+      <div class="quick-card-sub" id="dash-inbody-sub">最新: 未登録</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== PAGE: TRAINING ======== -->
+<section class="page" id="page-training">
+
+  <!-- TIMER (moved here from dashboard) -->
+  <div class="timer-card" id="timer-card">
+    <div class="card-header" style="margin-bottom:9px;">
+      <div class="card-title">
+        <i data-lucide="timer" style="width:15px;height:15px;color:var(--cyan);"></i>
+        インターバルタイマー
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="timer-sound-btn" class="btn btn-ghost btn-icon" style="width:27px;height:27px;" title="サウンド切替">
+          <i data-lucide="volume-2" id="timer-sound-icon" style="width:13px;height:13px;color:var(--cyan);"></i>
+        </button>
+      </div>
+    </div>
+    <div class="timer-layout">
+      <div class="timer-ring-wrap">
+        <svg width="76" height="76" viewBox="0 0 76 76">
+          <circle cx="38" cy="38" r="32" stroke="rgba(255,255,255,0.07)" stroke-width="6" fill="none"/>
+          <circle id="timer-ring" cx="38" cy="38" r="32" stroke="var(--cyan)" stroke-width="6" fill="none"
+            stroke-dasharray="201.1" stroke-dashoffset="0" stroke-linecap="round"
+            style="transition:stroke-dashoffset 1s linear;"/>
+        </svg>
+        <div class="timer-display" id="timer-display">01:30</div>
+      </div>
+      <div>
+        <div class="timer-presets">
+          <button class="timer-preset-btn" data-sec="30">30s</button>
+          <button class="timer-preset-btn" data-sec="60">60s</button>
+          <button class="timer-preset-btn" data-sec="90">90s</button>
+          <button class="timer-preset-btn" data-sec="120">2m</button>
+        </div>
+        <div class="timer-actions">
+          <button id="timer-toggle-btn" class="btn btn-cyan btn-sm" style="flex:1;">
+            <i data-lucide="play" id="timer-play-icon" style="width:12px;height:12px;"></i>
+            <span id="timer-toggle-label">スタート</span>
+          </button>
+          <button id="timer-reset-btn" class="btn btn-ghost btn-icon" style="width:30px;height:30px;">
+            <i data-lucide="rotate-ccw" style="width:13px;height:13px;"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-title-icon" style="background:rgba(14,165,233,0.12);">
+          <i data-lucide="dumbbell" style="width:15px;height:15px;color:var(--cyan);"></i>
+        </div>
+        筋トレ記録
+      </div>
+      <button id="custom-ex-open-btn" class="btn btn-ghost btn-sm">
+        <i data-lucide="plus" style="width:12px;height:12px;"></i> 追加
+      </button>
+    </div>
+
+    <div class="form-label" style="margin-bottom:5px;">① 器具</div>
+    <div class="equip-tabs" id="equipment-tabs">
+      <button class="equip-btn active" data-equip="バーベル"><span class="equip-icon">🏋️</span><span class="equip-name">バーベル</span></button>
+      <button class="equip-btn" data-equip="スミスマシン"><span class="equip-icon">🔩</span><span class="equip-name">スミス</span></button>
+      <button class="equip-btn" data-equip="ダンベル"><span class="equip-icon">💪</span><span class="equip-name">ダンベル</span></button>
+      <button class="equip-btn" data-equip="マシン"><span class="equip-icon">⚙️</span><span class="equip-name">マシン</span></button>
+      <button class="equip-btn" data-equip="自重"><span class="equip-icon">🤸</span><span class="equip-name">自重</span></button>
+    </div>
+
+    <div class="form-label" style="margin-bottom:5px;">② 部位</div>
+    <div class="cat-tabs" id="category-tabs"></div>
+
+    <form id="workout-form">
+      <div class="form-group">
+        <label class="form-label">③ 種目</label>
+        <select id="exercise-select" class="form-select"></select>
+      </div>
+      <div id="prev-record-alert" class="prev-record hidden">
+        <i data-lucide="clock" style="width:13px;height:13px;color:var(--cyan);flex-shrink:0;"></i>
+        <span id="prev-record-text"></span>
+      </div>
+      <div class="input-grid-3">
+        <div class="form-group">
+          <label class="form-label">重量 kg</label>
+          <input type="number" step="0.5" id="workout-weight" class="form-control" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rep数</label>
+          <input type="number" id="workout-reps" class="form-control" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Set数</label>
+          <input type="number" id="workout-sets" class="form-control" value="3">
+        </div>
+      </div>
+      <div class="rm-row">
+        <span style="color:var(--text-2);">推定 1RM</span>
+        <span class="rm-val" id="val-1rm" style="color:var(--cyan);">— kg</span>
+        <span style="color:var(--text-3);font-size:0.72rem;">ボリューム</span>
+        <span class="rm-val" id="val-vol" style="color:var(--green);">— kg</span>
+      </div>
+      <div class="form-group">
+        <input type="text" id="workout-notes" class="form-control" placeholder="メモ（任意）">
+      </div>
+      <button type="submit" class="btn btn-cyan btn-lg">
+        <i data-lucide="check-circle" style="width:16px;height:16px;"></i>
+        記録して次のセットへ
+      </button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="section-title">最近の記録</div>
+    <div id="workout-history-list"></div>
+  </div>
+</section>
+
+<!-- ======== PAGE: MEAL ======== -->
+<section class="page" id="page-meal">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-title-icon" style="background:rgba(249,115,22,0.12);">
+          <i data-lucide="utensils" style="width:15px;height:15px;color:var(--orange);"></i>
+        </div>
+        本日の栄養記録
+      </div>
+      <span class="chip chip-orange" id="meal-date-chip"></span>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+        <span style="font-size:0.75rem;color:var(--text-2);font-weight:600;">CALORIES</span>
+        <div><strong id="meal-cal-num" style="color:var(--orange);font-size:1.15rem;">0</strong>
+          <span style="color:var(--text-3);font-size:0.85rem;"> / <span id="meal-cal-tgt">2400</span> kcal</span></div>
+      </div>
+      <div class="progress-track" style="height:9px;"><div id="meal-cal-bar" class="progress-fill fill-orange" style="width:0%;"></div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;">
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:4px;">
+          <span style="color:var(--green);font-weight:700;">P — タンパク質</span>
+          <span><strong id="meal-p-num">0g</strong> / <span id="meal-p-tgt">140g</span></span>
+        </div>
+        <div class="progress-track" style="height:5px;"><div id="meal-p-bar" class="progress-fill fill-green" style="width:0%;"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:4px;">
+          <span style="color:var(--amber);font-weight:700;">F — 脂質</span>
+          <span><strong id="meal-f-num">0g</strong> / <span id="meal-f-tgt">60g</span></span>
+        </div>
+        <div class="progress-track" style="height:5px;"><div id="meal-f-bar" class="progress-fill fill-amber" style="width:0%;"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:4px;">
+          <span style="color:var(--cyan);font-weight:700;">C — 炭水化物</span>
+          <span><strong id="meal-c-num">0g</strong> / <span id="meal-c-tgt">265g</span></span>
+        </div>
+        <div class="progress-track" style="height:5px;"><div id="meal-c-bar" class="progress-fill fill-cyan" style="width:0%;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-grid-1">
+    <button id="meal-add-btn" class="btn btn-orange btn-lg">
+      <i data-lucide="plus-circle" style="width:16px;height:16px;"></i>
+      食事を追加する
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="section-title">本日の食事ログ</div>
+    <div id="meal-history-list"></div>
+  </div>
+</section>
+
+<!-- ======== PAGE: INBODY ======== -->
+<section class="page" id="page-inbody">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-title-icon" style="background:rgba(34,197,94,0.12);">
+          <i data-lucide="activity" style="width:15px;height:15px;color:var(--green);"></i>
+        </div>
+        最新の体組成
+      </div>
+      <span style="font-size:0.7rem;color:var(--text-3);" id="inbody-latest-date">未測定</span>
+    </div>
+    <div class="body-stat-grid">
+      <div class="body-stat">
+        <div class="body-stat-label">体重</div>
+        <div class="body-stat-val" id="val-inbody-weight" style="color:var(--cyan);">—</div>
+        <div class="body-stat-unit">kg</div>
+      </div>
+      <div class="body-stat">
+        <div class="body-stat-label">体脂肪率</div>
+        <div class="body-stat-val" id="val-inbody-fat" style="color:var(--green);">—</div>
+        <div class="body-stat-unit">%</div>
+      </div>
+      <div class="body-stat">
+        <div class="body-stat-label">骨格筋量</div>
+        <div class="body-stat-val" id="val-inbody-muscle" style="color:var(--purple);">—</div>
+        <div class="body-stat-unit">kg</div>
+      </div>
+    </div>
+  </div>
+  <div class="action-grid-1">
+    <button id="inbody-add-btn" class="btn btn-green btn-lg">
+      <i data-lucide="plus-circle" style="width:16px;height:16px;"></i>
+      体組成データを入力する
+    </button>
+  </div>
+  <div class="card">
+    <div class="section-title">測定履歴</div>
+    <div id="inbody-history-list"></div>
+  </div>
+</section>
+
+<!-- ======== PAGE: ANALYTICS + CALENDAR ======== -->
+<section class="page" id="page-analytics">
+
+  <!-- CALENDAR CARD -->
+  <div class="card">
+    <div class="cal-header">
+      <button class="cal-nav-btn" id="cal-prev">
+        <i data-lucide="chevron-left" style="width:15px;height:15px;"></i>
+      </button>
+      <div class="cal-month-label" id="cal-month-label"></div>
+      <button class="cal-nav-btn" id="cal-next">
+        <i data-lucide="chevron-right" style="width:15px;height:15px;"></i>
+      </button>
+    </div>
+    <div class="cal-weekdays">
+      <div class="cal-wd">日</div><div class="cal-wd">月</div><div class="cal-wd">火</div>
+      <div class="cal-wd">水</div><div class="cal-wd">木</div><div class="cal-wd">金</div>
+      <div class="cal-wd">土</div>
+    </div>
+    <div class="cal-days" id="cal-days"></div>
+    <div class="cal-legend">
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--cyan);"></div>筋トレ</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--orange);"></div>食事</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--green);"></div>体組成</div>
+    </div>
+  </div>
+
+  <!-- DAY DETAIL (shown on click) -->
+  <div id="cal-day-detail" class="cal-detail-card hidden"></div>
+
+  <!-- CHARTS -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-title-icon" style="background:rgba(168,85,247,0.12);">
+          <i data-lucide="bar-chart-3" style="width:15px;height:15px;color:var(--purple);"></i>
+        </div>
+        体重・体組成 推移
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-body"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header" style="flex-wrap:wrap;gap:8px;">
+      <div class="card-title">
+        <div class="card-title-icon" style="background:rgba(14,165,233,0.12);">
+          <i data-lucide="trending-up" style="width:15px;height:15px;color:var(--cyan);"></i>
+        </div>
+        種目別推移
+      </div>
+      <select id="analytics-ex-select" class="form-select" style="width:auto;padding:4px 8px;font-size:0.75rem;border-radius:var(--r-sm);"></select>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-workout"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-title-icon" style="background:rgba(245,158,11,0.12);">
+          <i data-lucide="pie-chart" style="width:15px;height:15px;color:var(--amber);"></i>
+        </div>
+        本日のPFCバランス
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-pfc"></canvas></div>
+  </div>
+</section>
+
+<!-- BOTTOM NAV -->
+<nav class="app-nav">
+  <button class="nav-item active" data-tab="dashboard">
+    <i data-lucide="home" style="width:20px;height:20px;"></i><span>ホーム</span>
+  </button>
+  <button class="nav-item" data-tab="training">
+    <i data-lucide="dumbbell" style="width:20px;height:20px;"></i><span>筋トレ</span>
+  </button>
+  <button class="nav-item" data-tab="meal">
+    <i data-lucide="utensils" style="width:20px;height:20px;"></i><span>食事</span>
+  </button>
+  <button class="nav-item" data-tab="inbody">
+    <i data-lucide="activity" style="width:20px;height:20px;"></i><span>体組成</span>
+  </button>
+  <button class="nav-item" data-tab="analytics">
+    <i data-lucide="calendar" style="width:20px;height:20px;"></i><span>カレンダー</span>
+  </button>
+</nav>
+
+<!-- ======== MODALS ======== -->
+
+<!-- Settings Modal -->
+<div id="modal-settings" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-drag"></div>
+    <div class="modal-header">
+      <div class="modal-title">設定</div>
+      <button class="btn btn-ghost btn-icon modal-close" data-modal="modal-settings" style="width:30px;height:30px;">
+        <i data-lucide="x" style="width:15px;height:15px;"></i>
+      </button>
+    </div>
+    <div class="settings-tabs">
+      <button class="settings-tab-btn active" data-panel="panel-goals">🎯 目標PFC</button>
+      <button class="settings-tab-btn" data-panel="panel-backup">💾 バックアップ</button>
+    </div>
+    <div id="panel-goals" class="settings-panel active">
+      <div class="input-grid-2" style="margin-bottom:8px;">
+        <div class="form-group"><label class="form-label">体重 kg</label><input type="number" id="prf-weight" class="form-control" value="70"></div>
+        <div class="form-group"><label class="form-label">身長 cm</label><input type="number" id="prf-height" class="form-control" value="172"></div>
+      </div>
+      <div class="input-grid-2" style="margin-bottom:8px;">
+        <div class="form-group"><label class="form-label">年齢</label><input type="number" id="prf-age" class="form-control" value="28"></div>
+        <div class="form-group"><label class="form-label">性別</label><select id="prf-gender" class="form-select"><option value="male">男性</option><option value="female">女性</option></select></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">活動レベル</label>
+        <select id="prf-activity" class="form-select">
+          <option value="sedentary">座り仕事・ほぼ運動なし</option>
+          <option value="light">軽め（週1-3回）</option>
+          <option value="moderate" selected>標準（週3-5回）</option>
+          <option value="active">ハード（週6-7回）</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">目的</label>
+        <select id="prf-goal" class="form-select">
+          <option value="cutting">減量 (Cutting)</option>
+          <option value="maintenance" selected>維持 (Maintenance)</option>
+          <option value="bulking">増量 (Bulking)</option>
+        </select>
+      </div>
+      <button id="calc-tdee-btn" class="btn btn-ghost btn-md" style="width:100%;margin-bottom:10px;">
+        <i data-lucide="calculator" style="width:13px;height:13px;"></i> TDEE から自動計算
+      </button>
+      <div class="input-grid-2" style="margin-bottom:8px;">
+        <div class="form-group"><label class="form-label" style="color:var(--orange);">目標カロリー</label><input type="number" id="goal-cal" class="form-control" value="2400"></div>
+        <div class="form-group"><label class="form-label" style="color:var(--green);">タンパク質 g</label><input type="number" id="goal-p" class="form-control" value="140"></div>
+      </div>
+      <div class="input-grid-2" style="margin-bottom:12px;">
+        <div class="form-group"><label class="form-label" style="color:var(--amber);">脂質 g</label><input type="number" id="goal-f" class="form-control" value="60"></div>
+        <div class="form-group"><label class="form-label" style="color:var(--cyan);">炭水化物 g</label><input type="number" id="goal-c" class="form-control" value="265"></div>
+      </div>
+      <button id="save-goals-btn" class="btn btn-cyan btn-lg">
+        <i data-lucide="save" style="width:15px;height:15px;"></i> 目標を保存
+      </button>
+    </div>
+    <div id="panel-backup" class="settings-panel">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button id="export-btn" class="btn btn-ghost btn-lg"><i data-lucide="download" style="width:15px;height:15px;"></i> JSONバックアップ出力</button>
+        <label class="btn btn-ghost btn-lg" style="cursor:pointer;justify-content:center;">
+          <i data-lucide="upload" style="width:15px;height:15px;"></i> バックアップから復元
+          <input type="file" id="import-input" accept=".json" style="display:none;">
+        </label>
+        <div class="divider"></div>
+        <button id="clear-all-btn" class="btn btn-danger btn-lg"><i data-lucide="trash-2" style="width:15px;height:15px;"></i> 全データ削除（リセット）</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MEAL MODAL (batch entry) -->
+<div id="modal-meal" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-drag"></div>
+    <div class="modal-header">
+      <div class="modal-title">食事を追加</div>
+      <button class="btn btn-ghost btn-icon modal-close" data-modal="modal-meal" style="width:30px;height:30px;">
+        <i data-lucide="x" style="width:15px;height:15px;"></i>
+      </button>
+    </div>
+
+    <!-- Pending items section -->
+    <div id="pending-section" class="pending-section hidden">
+      <div class="pending-title">
+        <span>追加中のリスト <span id="pending-count">0</span>品</span>
+        <button id="save-all-btn" class="btn btn-orange btn-sm">
+          <i data-lucide="check" style="width:12px;height:12px;"></i> 全て保存
+        </button>
+      </div>
+      <div id="pending-items-list"></div>
+      <div class="pending-total-row">
+        <span class="pending-total-label">合計</span>
+        <span class="pending-total-val" id="pending-total-cal">0 kcal</span>
+        <span style="font-size:0.72rem;color:var(--text-3);">P<span id="pending-total-p">0</span> F<span id="pending-total-f">0</span> C<span id="pending-total-c">0</span></span>
+      </div>
+    </div>
+
+    <!-- Food search -->
+    <div class="form-group">
+      <label class="form-label">食材を検索</label>
+      <div class="autocomplete-wrap">
+        <input type="text" id="food-search" class="form-control" placeholder="鶏むね肉、白米、卵… " autocomplete="off">
+        <div id="food-dropdown" class="food-dropdown hidden"></div>
+      </div>
+    </div>
+
+    <!-- Selected food info -->
+    <div id="food-selected-card" class="food-selected-card hidden">
+      <div class="food-selected-name" id="food-selected-name"></div>
+      <div class="food-selected-meta" id="food-selected-meta"></div>
+    </div>
+
+    <!-- Unit buttons -->
+    <div id="unit-btns-wrap" class="unit-btns-wrap hidden">
+      <div class="unit-btns-label">量を選ぶ</div>
+      <div class="unit-btns" id="unit-btns"></div>
+    </div>
+
+    <!-- Grams input -->
+    <div class="input-grid-2" style="margin-bottom:10px;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">グラム数</label>
+        <input type="number" id="food-grams" class="form-control" placeholder="100" min="1">
+      </div>
+      <div style="display:flex;align-items:flex-end;">
+        <button id="food-calc-btn" class="btn btn-ghost btn-md" style="width:100%;">
+          <i data-lucide="calculator" style="width:13px;height:13px;"></i> 計算
+        </button>
+      </div>
+    </div>
+
+    <!-- PFC preview -->
+    <div class="pfc-auto-grid">
+      <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--orange);">kcal</div><div class="pfc-auto-val" id="pfc-cal-preview" style="color:var(--orange);">—</div></div>
+      <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--green);">P(g)</div><div class="pfc-auto-val" id="pfc-p-preview" style="color:var(--green);">—</div></div>
+      <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--amber);">F(g)</div><div class="pfc-auto-val" id="pfc-f-preview" style="color:var(--amber);">—</div></div>
+      <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--cyan);">C(g)</div><div class="pfc-auto-val" id="pfc-c-preview" style="color:var(--cyan);">—</div></div>
+    </div>
+
+    <button id="add-to-list-btn" class="btn btn-amber btn-lg" style="margin-bottom:10px;">
+      <i data-lucide="plus" style="width:16px;height:16px;"></i>
+      リストに追加
+    </button>
+
+    <div class="or-divider">または手動入力</div>
+
+    <div class="form-group">
+      <label class="form-label">料理名</label>
+      <input type="text" id="modal-meal-name" class="form-control" placeholder="例: 鶏胸肉サラダ">
+    </div>
+    <div class="input-grid-2" style="margin-bottom:8px;">
+      <div class="form-group"><label class="form-label" style="color:var(--orange);">カロリー kcal</label><input type="number" id="modal-meal-cal" class="form-control" placeholder="0"></div>
+      <div class="form-group"><label class="form-label" style="color:var(--green);">P g</label><input type="number" step="0.1" id="modal-meal-p" class="form-control" placeholder="0"></div>
+    </div>
+    <div class="input-grid-2" style="margin-bottom:10px;">
+      <div class="form-group"><label class="form-label" style="color:var(--amber);">F g</label><input type="number" step="0.1" id="modal-meal-f" class="form-control" placeholder="0"></div>
+      <div class="form-group"><label class="form-label" style="color:var(--cyan);">C g</label><input type="number" step="0.1" id="modal-meal-c" class="form-control" placeholder="0"></div>
+    </div>
+    <button id="save-meal-btn" class="btn btn-orange btn-lg">
+      <i data-lucide="check" style="width:16px;height:16px;"></i> 保存して閉じる
+    </button>
+  </div>
+</div>
+
+<!-- InBody Modal -->
+<div id="modal-inbody" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-drag"></div>
+    <div class="modal-header">
+      <div class="modal-title">体組成データを入力</div>
+      <button class="btn btn-ghost btn-icon modal-close" data-modal="modal-inbody" style="width:30px;height:30px;">
+        <i data-lucide="x" style="width:15px;height:15px;"></i>
+      </button>
+    </div>
+    <div class="form-group"><label class="form-label">測定日</label><input type="date" id="modal-inbody-date" class="form-control"></div>
+    <div class="input-grid-3">
+      <div class="form-group"><label class="form-label">体重 kg</label><input type="number" step="0.1" id="modal-inbody-weight" class="form-control" placeholder="0.0"></div>
+      <div class="form-group"><label class="form-label">体脂肪率 %</label><input type="number" step="0.1" id="modal-inbody-fat" class="form-control" placeholder="0.0"></div>
+      <div class="form-group"><label class="form-label">骨格筋量 kg</label><input type="number" step="0.1" id="modal-inbody-muscle" class="form-control" placeholder="0.0"></div>
+    </div>
+    <div class="form-group"><label class="form-label">メモ</label><input type="text" id="modal-inbody-note" class="form-control" placeholder="任意メモ"></div>
+    <button id="save-inbody-btn" class="btn btn-green btn-lg"><i data-lucide="check" style="width:16px;height:16px;"></i> 保存する</button>
+  </div>
+</div>
+
+<!-- Custom Exercise Modal -->
+<div id="modal-custom-ex" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-drag"></div>
+    <div class="modal-header">
+      <div class="modal-title">カスタム種目を追加</div>
+      <button class="btn btn-ghost btn-icon modal-close" data-modal="modal-custom-ex" style="width:30px;height:30px;">
+        <i data-lucide="x" style="width:15px;height:15px;"></i>
+      </button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">器具</label>
+      <select id="modal-custom-equip" class="form-select">
+        <option value="バーベル">🏋️ バーベル</option>
+        <option value="スミスマシン">🔩 スミスマシン</option>
+        <option value="ダンベル">💪 ダンベル</option>
+        <option value="マシン">⚙️ マシン</option>
+        <option value="自重">🤸 自重</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">部位</label>
+      <select id="modal-custom-cat" class="form-select">
+        <option value="胸">胸</option><option value="背中">背中</option><option value="脚">脚</option>
+        <option value="肩">肩</option><option value="腕">腕</option><option value="腹筋">腹筋</option><option value="その他">その他</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">種目名</label><input type="text" id="modal-custom-name" class="form-control" placeholder="例: ハックスクワット"></div>
+    <button id="save-custom-ex-btn" class="btn btn-cyan btn-lg"><i data-lucide="plus" style="width:15px;height:15px;"></i> 追加する</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+  }
+</script>
+</body>
+</html>
