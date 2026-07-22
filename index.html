@@ -93,19 +93,22 @@
     .card-title { display:flex; align-items:center; gap:8px; font-size:0.92rem; font-weight:700; }
     .card-title-icon { width:28px; height:28px; border-radius:var(--r-sm); display:flex; align-items:center; justify-content:center; }
 
-    /* HERO */
-    .hero-banner {
-      background:linear-gradient(135deg,rgba(14,165,233,0.15),rgba(99,102,241,0.12),rgba(168,85,247,0.1));
-      border:1px solid rgba(56,189,248,0.2); border-radius:var(--r-xl);
-      padding:18px; margin-bottom:12px; position:relative; overflow:hidden;
+    /* BALANCE CARD */
+    .balance-card {
+      background:linear-gradient(135deg,rgba(17,24,39,0.9),rgba(30,42,64,0.9));
+      border:1px solid rgba(56,189,248,0.25); border-radius:var(--r-xl);
+      padding:16px; margin-bottom:12px; box-shadow:var(--shadow-sm);
     }
-    .hero-banner::before {
-      content:''; position:absolute; top:-40%; right:-20%; width:200px; height:200px;
-      background:radial-gradient(circle,rgba(56,189,248,0.12),transparent 70%); pointer-events:none;
-    }
-    .hero-date  { font-size:0.72rem; color:var(--text-3); margin-bottom:4px; font-weight:500; }
-    .hero-title { font-size:1.2rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:4px; }
-    .hero-sub   { font-size:0.78rem; color:var(--text-2); }
+    .balance-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .balance-date   { font-size:0.75rem; color:var(--text-3); font-weight:600; }
+    .balance-main   { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; background:rgba(0,0,0,0.25); border-radius:var(--r-md); padding:12px; border:1px solid var(--border); }
+    .balance-label  { font-size:0.8rem; font-weight:700; color:var(--text-2); }
+    .balance-badge  { font-size:1.35rem; font-weight:800; }
+
+    .balance-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; text-align:center; }
+    .balance-sub-box { background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:var(--r-md); padding:8px 4px; }
+    .balance-sub-title { font-size:0.62rem; color:var(--text-3); font-weight:700; text-transform:uppercase; margin-bottom:3px; }
+    .balance-sub-val   { font-size:0.92rem; font-weight:800; }
 
     /* BUTTONS */
     .btn {
@@ -224,6 +227,7 @@
     .equip-btn .equip-icon { font-size:0.95rem; }
     .equip-btn .equip-name { font-size:0.67rem; font-weight:700; }
     .equip-btn.active { background:rgba(14,165,233,0.15); border-color:rgba(14,165,233,0.4); color:var(--cyan); }
+    .equip-btn[data-equip="有酸素"].active { background:rgba(249,115,22,0.15); border-color:rgba(249,115,22,0.4); color:var(--orange); }
     .equip-btn:hover:not(.active) { background:rgba(255,255,255,0.07); }
 
     /* CAT TABS */
@@ -491,10 +495,39 @@
 
 <!-- ======== PAGE: DASHBOARD ======== -->
 <section class="page active" id="page-dashboard">
-  <div class="hero-banner">
-    <div class="hero-date" id="hero-date"></div>
-    <div class="hero-title">今日もトレーニング！🔥</div>
-    <div class="hero-sub">目標に向かって着実に積み上げましょう</div>
+
+  <!-- CALORIE BALANCE SUMMARY CARD -->
+  <div class="balance-card">
+    <div class="balance-header">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <i data-lucide="scale" style="width:16px;height:16px;color:var(--cyan);"></i>
+        <span style="font-size:0.88rem;font-weight:800;">本日のカロリー収支</span>
+      </div>
+      <div class="balance-date" id="hero-date"></div>
+    </div>
+
+    <div class="balance-main">
+      <div class="balance-label">カロリー収支</div>
+      <div class="balance-badge" id="bal-status-val" style="color:var(--green);">— kcal</div>
+    </div>
+
+    <div class="balance-grid">
+      <div class="balance-sub-box">
+        <div class="balance-sub-title" style="color:var(--orange);">① 摂取カロリー</div>
+        <div class="balance-sub-val" id="bal-in-val" style="color:var(--orange);">0</div>
+        <div style="font-size:0.58rem;color:var(--text-3);">kcal</div>
+      </div>
+      <div class="balance-sub-box">
+        <div class="balance-sub-title" style="color:var(--cyan);">② 総消費 (代謝)</div>
+        <div class="balance-sub-val" id="bal-out-val" style="color:var(--cyan);">0</div>
+        <div style="font-size:0.58rem;color:var(--text-3);">kcal</div>
+      </div>
+      <div class="balance-sub-box">
+        <div class="balance-sub-title" style="color:var(--green);">有酸素消費</div>
+        <div class="balance-sub-val" id="bal-cardio-val" style="color:var(--green);">0</div>
+        <div style="font-size:0.58rem;color:var(--text-3);">kcal</div>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -503,7 +536,7 @@
         <div class="card-title-icon" style="background:rgba(249,115,22,0.15);">
           <i data-lucide="flame" style="width:15px;height:15px;color:var(--orange);"></i>
         </div>
-        本日のカロリー &amp; PFC
+        本日の PFC 目標進捗
       </div>
       <button class="btn btn-ghost btn-sm nav-to" data-target="meal">記録 →</button>
     </div>
@@ -553,7 +586,7 @@
       <div class="quick-card-icon" style="background:rgba(14,165,233,0.12);">
         <i data-lucide="dumbbell" style="width:17px;height:17px;color:var(--cyan);"></i>
       </div>
-      <div class="quick-card-title">筋トレ記録</div>
+      <div class="quick-card-title">筋トレ・有酸素</div>
       <div class="quick-card-sub" id="dash-workout-sub">本日 0 セット</div>
     </div>
     <div class="quick-card nav-to" data-target="inbody">
@@ -569,7 +602,7 @@
 <!-- ======== PAGE: TRAINING ======== -->
 <section class="page" id="page-training">
 
-  <!-- TIMER (moved here from dashboard) -->
+  <!-- TIMER -->
   <div class="timer-card" id="timer-card">
     <div class="card-header" style="margin-bottom:9px;">
       <div class="card-title">
@@ -618,60 +651,91 @@
         <div class="card-title-icon" style="background:rgba(14,165,233,0.12);">
           <i data-lucide="dumbbell" style="width:15px;height:15px;color:var(--cyan);"></i>
         </div>
-        筋トレ記録
+        トレーニング記録
       </div>
       <button id="custom-ex-open-btn" class="btn btn-ghost btn-sm">
         <i data-lucide="plus" style="width:12px;height:12px;"></i> 追加
       </button>
     </div>
 
-    <div class="form-label" style="margin-bottom:5px;">① 器具</div>
+    <div class="form-label" style="margin-bottom:5px;">① 器具・タイプ</div>
     <div class="equip-tabs" id="equipment-tabs">
       <button class="equip-btn active" data-equip="バーベル"><span class="equip-icon">🏋️</span><span class="equip-name">バーベル</span></button>
       <button class="equip-btn" data-equip="スミスマシン"><span class="equip-icon">🔩</span><span class="equip-name">スミス</span></button>
       <button class="equip-btn" data-equip="ダンベル"><span class="equip-icon">💪</span><span class="equip-name">ダンベル</span></button>
       <button class="equip-btn" data-equip="マシン"><span class="equip-icon">⚙️</span><span class="equip-name">マシン</span></button>
       <button class="equip-btn" data-equip="自重"><span class="equip-icon">🤸</span><span class="equip-name">自重</span></button>
+      <button class="equip-btn" data-equip="有酸素"><span class="equip-icon">🏃</span><span class="equip-name">有酸素</span></button>
     </div>
 
-    <div class="form-label" style="margin-bottom:5px;">② 部位</div>
-    <div class="cat-tabs" id="category-tabs"></div>
+    <div id="cat-tabs-container">
+      <div class="form-label" style="margin-bottom:5px;">② 部位</div>
+      <div class="cat-tabs" id="category-tabs"></div>
+    </div>
 
     <form id="workout-form">
       <div class="form-group">
         <label class="form-label">③ 種目</label>
         <select id="exercise-select" class="form-select"></select>
       </div>
+
       <div id="prev-record-alert" class="prev-record hidden">
         <i data-lucide="clock" style="width:13px;height:13px;color:var(--cyan);flex-shrink:0;"></i>
         <span id="prev-record-text"></span>
       </div>
-      <div class="input-grid-3">
-        <div class="form-group">
-          <label class="form-label">重量 kg</label>
-          <input type="number" step="0.5" id="workout-weight" class="form-control" placeholder="0">
+
+      <!-- STRENGTH INPUT FIELDS -->
+      <div id="strength-inputs">
+        <div class="input-grid-3">
+          <div class="form-group">
+            <label class="form-label">重量 kg</label>
+            <input type="number" step="0.5" id="workout-weight" class="form-control" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Rep数</label>
+            <input type="number" id="workout-reps" class="form-control" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Set数</label>
+            <input type="number" id="workout-sets" class="form-control" value="3">
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Rep数</label>
-          <input type="number" id="workout-reps" class="form-control" placeholder="0">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Set数</label>
-          <input type="number" id="workout-sets" class="form-control" value="3">
+        <div class="rm-row">
+          <span style="color:var(--text-2);">推定 1RM</span>
+          <span class="rm-val" id="val-1rm" style="color:var(--cyan);">— kg</span>
+          <span style="color:var(--text-3);font-size:0.72rem;">ボリューム</span>
+          <span class="rm-val" id="val-vol" style="color:var(--green);">— kg</span>
         </div>
       </div>
-      <div class="rm-row">
-        <span style="color:var(--text-2);">推定 1RM</span>
-        <span class="rm-val" id="val-1rm" style="color:var(--cyan);">— kg</span>
-        <span style="color:var(--text-3);font-size:0.72rem;">ボリューム</span>
-        <span class="rm-val" id="val-vol" style="color:var(--green);">— kg</span>
+
+      <!-- CARDIO INPUT FIELDS -->
+      <div id="cardio-inputs" class="hidden">
+        <div class="input-grid-3">
+          <div class="form-group">
+            <label class="form-label" style="color:var(--orange);">傾斜 %</label>
+            <input type="number" step="0.5" id="cardio-incline" class="form-control" placeholder="0.0">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:var(--cyan);">速度 km/h</label>
+            <input type="number" step="0.1" id="cardio-speed" class="form-control" placeholder="0.0">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:var(--green);">時間 分</label>
+            <input type="number" id="cardio-time" class="form-control" placeholder="0">
+          </div>
+        </div>
+        <div class="rm-row">
+          <span style="color:var(--text-2);">推定消費カロリー</span>
+          <span class="rm-val" id="val-cardio-cal" style="color:var(--orange);">— kcal</span>
+        </div>
       </div>
+
       <div class="form-group">
         <input type="text" id="workout-notes" class="form-control" placeholder="メモ（任意）">
       </div>
       <button type="submit" class="btn btn-cyan btn-lg">
         <i data-lucide="check-circle" style="width:16px;height:16px;"></i>
-        記録して次のセットへ
+        記録を保存する
       </button>
     </form>
   </div>
@@ -803,13 +867,13 @@
     </div>
     <div class="cal-days" id="cal-days"></div>
     <div class="cal-legend">
-      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--cyan);"></div>筋トレ</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--cyan);"></div>筋トレ/有酸素</div>
       <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--orange);"></div>食事</div>
       <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--green);"></div>体組成</div>
     </div>
   </div>
 
-  <!-- DAY DETAIL (shown on click) -->
+  <!-- DAY DETAIL -->
   <div id="cal-day-detail" class="cal-detail-card hidden"></div>
 
   <!-- CHARTS -->
@@ -855,7 +919,7 @@
     <i data-lucide="home" style="width:20px;height:20px;"></i><span>ホーム</span>
   </button>
   <button class="nav-item" data-tab="training">
-    <i data-lucide="dumbbell" style="width:20px;height:20px;"></i><span>筋トレ</span>
+    <i data-lucide="dumbbell" style="width:20px;height:20px;"></i><span>運動</span>
   </button>
   <button class="nav-item" data-tab="meal">
     <i data-lucide="utensils" style="width:20px;height:20px;"></i><span>食事</span>
@@ -939,7 +1003,7 @@
   </div>
 </div>
 
-<!-- MEAL MODAL (batch entry) -->
+<!-- MEAL MODAL -->
 <div id="modal-meal" class="modal-overlay">
   <div class="modal-sheet">
     <div class="modal-drag"></div>
@@ -949,8 +1013,6 @@
         <i data-lucide="x" style="width:15px;height:15px;"></i>
       </button>
     </div>
-
-    <!-- Pending items section -->
     <div id="pending-section" class="pending-section hidden">
       <div class="pending-title">
         <span>追加中のリスト <span id="pending-count">0</span>品</span>
@@ -965,8 +1027,6 @@
         <span style="font-size:0.72rem;color:var(--text-3);">P<span id="pending-total-p">0</span> F<span id="pending-total-f">0</span> C<span id="pending-total-c">0</span></span>
       </div>
     </div>
-
-    <!-- Food search -->
     <div class="form-group">
       <label class="form-label">食材を検索</label>
       <div class="autocomplete-wrap">
@@ -974,20 +1034,14 @@
         <div id="food-dropdown" class="food-dropdown hidden"></div>
       </div>
     </div>
-
-    <!-- Selected food info -->
     <div id="food-selected-card" class="food-selected-card hidden">
       <div class="food-selected-name" id="food-selected-name"></div>
       <div class="food-selected-meta" id="food-selected-meta"></div>
     </div>
-
-    <!-- Unit buttons -->
     <div id="unit-btns-wrap" class="unit-btns-wrap hidden">
       <div class="unit-btns-label">量を選ぶ</div>
       <div class="unit-btns" id="unit-btns"></div>
     </div>
-
-    <!-- Grams input -->
     <div class="input-grid-2" style="margin-bottom:10px;">
       <div class="form-group" style="margin-bottom:0;">
         <label class="form-label">グラム数</label>
@@ -999,22 +1053,17 @@
         </button>
       </div>
     </div>
-
-    <!-- PFC preview -->
     <div class="pfc-auto-grid">
       <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--orange);">kcal</div><div class="pfc-auto-val" id="pfc-cal-preview" style="color:var(--orange);">—</div></div>
       <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--green);">P(g)</div><div class="pfc-auto-val" id="pfc-p-preview" style="color:var(--green);">—</div></div>
       <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--amber);">F(g)</div><div class="pfc-auto-val" id="pfc-f-preview" style="color:var(--amber);">—</div></div>
       <div class="pfc-auto-cell"><div class="pfc-auto-label" style="color:var(--cyan);">C(g)</div><div class="pfc-auto-val" id="pfc-c-preview" style="color:var(--cyan);">—</div></div>
     </div>
-
     <button id="add-to-list-btn" class="btn btn-amber btn-lg" style="margin-bottom:10px;">
       <i data-lucide="plus" style="width:16px;height:16px;"></i>
       リストに追加
     </button>
-
     <div class="or-divider">または手動入力</div>
-
     <div class="form-group">
       <label class="form-label">料理名</label>
       <input type="text" id="modal-meal-name" class="form-control" placeholder="例: 鶏胸肉サラダ">
@@ -1065,23 +1114,25 @@
       </button>
     </div>
     <div class="form-group">
-      <label class="form-label">器具</label>
+      <label class="form-label">器具・タイプ</label>
       <select id="modal-custom-equip" class="form-select">
         <option value="バーベル">🏋️ バーベル</option>
         <option value="スミスマシン">🔩 スミスマシン</option>
         <option value="ダンベル">💪 ダンベル</option>
         <option value="マシン">⚙️ マシン</option>
         <option value="自重">🤸 自重</option>
+        <option value="有酸素">🏃 有酸素</option>
       </select>
     </div>
     <div class="form-group">
       <label class="form-label">部位</label>
       <select id="modal-custom-cat" class="form-select">
         <option value="胸">胸</option><option value="背中">背中</option><option value="脚">脚</option>
-        <option value="肩">肩</option><option value="腕">腕</option><option value="腹筋">腹筋</option><option value="その他">その他</option>
+        <option value="肩">肩</option><option value="腕">腕</option><option value="腹筋">腹筋</option>
+        <option value="有酸素">有酸素</option><option value="その他">その他</option>
       </select>
     </div>
-    <div class="form-group"><label class="form-label">種目名</label><input type="text" id="modal-custom-name" class="form-control" placeholder="例: ハックスクワット"></div>
+    <div class="form-group"><label class="form-label">種目名</label><input type="text" id="modal-custom-name" class="form-control" placeholder="例: トレッドミル"></div>
     <button id="save-custom-ex-btn" class="btn btn-cyan btn-lg"><i data-lucide="plus" style="width:15px;height:15px;"></i> 追加する</button>
   </div>
 </div>

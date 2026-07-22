@@ -1,8 +1,11 @@
 /* ============================================================
    FitPulse — app.js  (完全オフライン版)
    - 食材DB（ベースブレッド全種 + 定番単位設定含む）
+   - 種目DB（筋トレ250+種目 + 有酸素運動）
+   - リアルタイム カロリー収支（代謝 - 摂取 = ＋/ー表示）
+   - 有酸素機能（傾斜・速度・時間 ➔ 自動カロリー計算）
    - 食事の一括連続入力（バッチ登録）
-   - タイマー（筋トレタブへ移動）
+   - タイマー（筋トレ/運動タブ）
    - カレンダー機能（タップで詳細表示）
    ============================================================ */
 'use strict';
@@ -10,10 +13,8 @@
 // ─── Storage Keys ───────────────────────────────────────────
 const LS = { WORKOUTS:'fp_workouts', MEALS:'fp_meals', INBODY:'fp_inbody', PROFILE:'fp_profile', CUSTOM_EX:'fp_custom_ex' };
 
-// ─── FOOD DATABASE (per 100g or per piece base: [name, kcal, P, F, C, units]) ────────
-// units: Array of [label, grams]
+// ─── FOOD DATABASE ───────────────────────────────────────────
 const FOOD_DB_RAW = [
-  // ── BASE BREAD（ベースブレッド）全種類 ─────────────
   ['ベースブレッド プレーン',205,13.5,5.4,26.0,[['1袋',80]]],
   ['ベースブレッド チョコレート',232,13.5,7.3,28.0,[['1袋',80]]],
   ['ベースブレッド メープル',235,13.5,7.7,27.1,[['1袋(2個)',80]]],
@@ -23,7 +24,6 @@ const FOOD_DB_RAW = [
   ['ベースブレッド ミニ食パン レーズン',244,13.5,6.1,33.5,[['1袋(2枚)',80]]],
   ['ベースブレッド リッチ',210,13.5,5.2,26.5,[['1袋',80]]],
 
-  // ── 卵・乳製品 ────────────────────────────
   ['鶏卵（全卵）',151,12.3,10.3,0.3,[['M1個(約50g)',50],['L1個(約60g)',60],['2個',100]]],
   ['ゆで卵',151,12.9,10.0,0.3,[['1個',50],['2個',100]]],
   ['目玉焼き',180,12.0,14.0,0.3,[['1個',50]]],
@@ -35,14 +35,12 @@ const FOOD_DB_RAW = [
   ['ヨーグルト（無糖）',62,3.6,3.0,4.9,[['1カップ',100],['1パック(400g)',400]]],
   ['プロテインヨーグルト(パルテノ)',100,10.2,4.3,4.8,[['1個(100g)',100]]],
 
-  // ── プロテイン・サプリ ───────────────────────
   ['ホエイプロテイン（粉）',380,75.0,7.0,10.0,[['1食分(30g)',30],['スプーン1杯(10g)',10]]],
   ['カゼインプロテイン（粉）',370,78.0,5.0,8.0,[['1食分(30g)',30]]],
   ['ソイプロテイン（粉）',360,80.0,4.0,9.0,[['1食分(30g)',30]]],
   ['プロテインバー（標準）',350,20.0,10.0,40.0,[['1本(45g)',45]]],
   ['inバー プロテイン バニラ',440,22.0,22.0,38.0,[['1本(44g)',44]]],
 
-  // ── 穀類・主食 ────────────────────────────
   ['白米（炊飯）',168,2.5,0.3,37.1,[['お茶碗1杯(150g)',150],['大盛り(200g)',200],['少なめ(100g)',100],['1合(330g)',330]]],
   ['玄米（炊飯）',165,2.8,1.0,35.6,[['お茶碗1杯(150g)',150],['200g',200]]],
   ['パックご飯（白米）',168,2.5,0.3,37.1,[['1パック(200g)',200],['1パック(150g)',150]]],
@@ -55,7 +53,6 @@ const FOOD_DB_RAW = [
   ['おにぎり（ツナマヨ）',220,4.0,7.5,33.0,[['1個(110g)',110]]],
   ['おにぎり（昆布/梅）',160,3.0,0.5,36.0,[['1個(110g)',110]]],
 
-  // ── 肉類 ──────────────────────────────────
   ['サラダチキン（プレーン）',105,23.8,0.9,0.2,[['1パック(110g)',110],['1/2パック(55g)',55]]],
   ['サラダチキン（ハーブ）',108,23.0,1.2,0.5,[['1パック(110g)',110]]],
   ['鶏むね肉（皮なし）',116,23.3,1.9,0,[['1枚(250g)',250],['100g',100]]],
@@ -69,7 +66,6 @@ const FOOD_DB_RAW = [
   ['豚バラ',395,14.4,35.4,0.1,[['100g',100]]],
   ['ウインナー',321,11.5,28.5,3.3,[['1本(20g)',20],['3本(60g)',60],['1袋(90g)',90]]],
 
-  // ── 魚介類 ────────────────────────────────
   ['鮭（生）',133,22.3,4.1,0.1,[['1切れ(80g)',80]]],
   ['ツナ缶（水煮）',71,16.0,0.7,0.1,[['1缶(70g)',70]]],
   ['ツナ缶（油漬）',267,18.8,21.7,0.1,[['1缶(70g)',70]]],
@@ -77,13 +73,11 @@ const FOOD_DB_RAW = [
   ['さば味噌煮（缶）',210,16.3,13.9,6.6,[['1缶(190g)',190]]],
   ['まぐろ赤身',125,26.4,1.4,0.1,[['1冊(150g)',150],['5貫(75g)',75]]],
 
-  // ── 大豆・豆腐・納豆 ───────────────────────
   ['納豆',200,16.5,10.0,12.1,[['1パック(45g)',45],['1パック(50g)',50]]],
   ['木綿豆腐',73,7.0,4.9,1.5,[['1丁(300g)',300],['1/2丁(150g)',150],['1パック(150g)',150]]],
   ['絹豆腐',56,5.3,3.5,2.0,[['1丁(300g)',300],['1パック(150g)',150]]],
   ['無調整豆乳',46,3.6,2.0,3.1,[['1パック(200ml)',200]]],
 
-  // ── 野菜・果物・その他 ──────────────────────
   ['ブロッコリー（茹）',27,3.9,0.4,3.8,[['1株(200g)',200],['小鉢(50g)',50]]],
   ['バナナ',86,1.1,0.2,22.5,[['1本(皮なし90g)',90]]],
   ['りんご',61,0.2,0.2,16.2,[['1個(250g)',250],['1/2個(125g)',125]]],
@@ -93,53 +87,64 @@ const FOOD_DB_RAW = [
   ['オリーブオイル',921,0,100,0,[['大さじ1(12g)',12],['小さじ1(4g)',4]]],
 ];
 
-// Build index
 const FOOD_DB = FOOD_DB_RAW.map(([name,cal,p,f,c,units]) => ({
   name, cal, p, f, c, units: units || []
 }));
 
-// ─── EXERCISE DATABASE (by equipment → body part → exercises) ──
+// ─── EXERCISE DATABASE ─────────────────────────────────────────
 const EX_DB = {
   'バーベル': {
-    '胸':  ['ベンチプレス','インクラインベンチプレス','デクラインベンチプレス','ナローグリップベンチプレス'],
-    '背中':['デッドリフト','バーベルロウ','Tバーロウ','ルーマニアンデッドリフト','ストレートレッグDL','バーベルプルオーバー'],
-    '脚':  ['バーベルスクワット','フロントスクワット','ハックスクワット','バーベルランジ','バーベルブルガリアン','バーベルヒップスラスト','グッドモーニング'],
-    '肩':  ['バーベルショルダープレス','ミリタリープレス','バーベルアップライトロウ','バーベルシュラッグ'],
-    '腕':  ['バーベルカール','リバースカール','クローズグリップベンチ','スカルクラッシャー','バーベルリストカール'],
-    '腹筋':['バーベルロールアウト','バーベルサイドベンド'],
+    '胸':  ['ベンチプレス','インクラインベンチプレス','デクラインベンチプレス','ナローグリップベンチプレス','ギロチンプレス','フロアプレス','バーベルプルオーバー','リバースグリップベンチプレス'],
+    '背中':['デッドリフト','バーベルベントオーバーロウ','ペンレイロウ','Tバーロウ','ルーマニアンデッドリフト','ストレートレッグデッドリフト','バーベルシュラッグ','ラックプル (ハーフDL)','バーベルプルオーバー','スモウデッドリフト'],
+    '脚':  ['バーベルバックスクワット','フロントスクワット','ハイバースクワット','ローバースクワット','ゼッチャースクワット','バーベルランジ','バーベルブルガリアンスプリット','バーベルヒップスラスト','グッドモーニング','バーベルカーフレイズ','ボックススクワット'],
+    '肩':  ['オーバーヘッドプレス (OHP)','ミリタリープレス','バーベルショルダープレス','ビハインドネックプレス','バーベルアップライトロウ','バーベルシュラッグ','プッシュプレス','バーベルフロントレイズ'],
+    '腕':  ['バーベルカール','EZバーカール','リバースカール','21カール','クローズグリップベンチプレス','ライイングトライセプスエクステンション (スカルクラッシャー)','JMプレス','バーベルリストカール','バーベルリバースリストカール'],
+    '腹筋':['バーベルロールアウト','バーベルサイドベンド']
   },
   'スミスマシン': {
-    '胸':  ['スミスベンチプレス','スミスインクラインベンチプレス','スミスデクラインベンチプレス','スミスナローベンチプレス'],
-    '背中':['スミスベントオーバーロウ','スミスシュラッグ','スミスインバーテッドロウ'],
-    '脚':  ['スミスフルスクワット','スミスハーフスクワット','スミスブルガリアンスプリット','スミスランジ','スミスカーフレイズ','スミスヒップスラスト'],
-    '肩':  ['スミスショルダープレス','スミスアップライトロウ'],
-    '腕':  ['スミスバーベルカール','スミスクローズグリッププレス'],
-    '腹筋':['スミスクランチ'],
+    '胸':  ['スミスベンチプレス','スミスインクラインベンチプレス','スミスデクラインベンチプレス','スミスナローベンチプレス','スミスリバースグリップベンチプレス','スミスギロチンプレス'],
+    '背中':['スミスベントオーバーロウ','スミスシュラッグ','スミスインバーテッドロウ (斜め懸垂)','スミスルーマニアンデッドリフト','スミスラックプル'],
+    '脚':  ['スミスフルスクワット','スミスハーフスクワット','スミスフロントスクワット','スミスブルガリアンスプリットスクワット','スミスリバースランジ','スミスシシースクワット','スミスカーフレイズ','スミスヒップスラスト','スミスグッドモーニング'],
+    '肩':  ['スミスショルダープレス','スミスビハインドネックプレス','スミスアップライトロウ','スミスシュラッグ','スミスフロントレイズ'],
+    '腕':  ['スミスバーベルカール','スミスクローズグリップベンチプレス','スミスJMプレス','スミスドラッグカール'],
+    '腹筋':['スミスクランチ','スミスサイドベンド']
   },
   'ダンベル': {
-    '胸':  ['ダンベルベンチプレス','ダンベルフライ','ダンベルインクラインプレス','ダンベルインクラインフライ','ダンベルデクラインプレス','ダンベルプルオーバー'],
-    '背中':['ダンベルワンハンドロウ','ダンベルベントオーバーロウ','ダンベルデッドリフト','ダンベルルーマニアンDL','ダンベルシュラッグ'],
-    '脚':  ['ダンベルスクワット','ダンベルランジ','ダンベルブルガリアン','ダンベルスティフレッグDL','ダンベルヒップスラスト','ダンベルカーフレイズ'],
-    '肩':  ['ダンベルショルダープレス','ダンベルサイドレイズ','ダンベルフロントレイズ','ダンベルリアデルト','ダンベルアーノルドプレス','ダンベルシュラッグ'],
-    '腕':  ['ダンベルカール','ハンマーカール','コンセントレーションカール','インクラインカール','ダンベルオーバーヘッドエクステンション','ダンベルキックバック','ダンベルリストカール'],
-    '腹筋':['ダンベルクランチ','ダンベルサイドベンド','ダンベルロシアンツイスト'],
+    '胸':  ['ダンベルベンチプレス','ダンベルインクラインプレス','ダンベルデクラインプレス','ダンベルフライ','ダンベルインクラインフライ','ダンベルデクラインフライ','ダンベルプルオーバー','ダンベルパームプレス (Squeeze Press)'],
+    '背中':['ダンベルワンハンドロウ','ダンベルベントオーバーロウ','ダンベルデッドリフト','ダンベルルーマニアンデッドリフト','ダンベルシュラッグ','インクラインダンベルロウ','ダンベルシールロウ','ダンベルYレイズ'],
+    '脚':  ['ダンベルスクワット','ダンベルゴブレットスクワット','ダンベルランジ','ダンベルブルガリアンスプリットスクワット','ダンベルスティフレッグデッドリフト','ダンベルヒップスラスト','ダンベルスタンディングカーフレイズ','ダンベルステップアップ'],
+    '肩':  ['ダンベルショルダープレス','アーノルドプレス','ダンベルサイドレイズ','インクラインサイドレイズ','ダンベルフロントレイズ','ダンベルリアデルトフライ','ライイングリアデルトフライ','ダンベルアップライトロウ','ダンベルシュラッグ'],
+    '腕':  ['ダンベルカール','インクラインダンベルカール','ハンマーカール','コンセントレーションカール','プリーチャーダンベルカール','スパイダーカール','ダンベルオーバーヘッドトライセプスエクステンション','ダンベルキックバック','ダンベルリストカール','ダンベルリバースリストカール'],
+    '腹筋':['ダンベルクランチ','ダンベルサイドベンド','ダンベルロシアンツイスト']
   },
   'マシン': {
-    '胸':  ['チェストプレス（マシン）','インクラインチェストプレス（マシン）','ペックデックフライ','ケーブルフライ（高）','ケーブルフライ（中）','ケーブルフライ（低）','ケーブルクロスオーバー'],
-    '背中':['ラットプルダウン（ワイド）','ラットプルダウン（ナロー）','シーテッドロウ（ワイド）','シーテッドロウ（ナロー）','ケーブルロウ','アシストプルアップ','バックエクステンション（マシン）','リバースフライ（マシン）'],
-    '脚':  ['レッグプレス','レッグカール（ライイング）','レッグカール（シーテッド）','レッグエクステンション','レッグアダクション（内転）','レッグアブダクション（外転）','カーフレイズ（マシン）','ヒップスラスト（マシン）','ヒップアブダクション'],
-    '肩':  ['ショルダープレス（マシン）','サイドレイズ（マシン）','リアデルト（マシン）','フェイスプル','ケーブルアップライトロウ'],
-    '腕':  ['バイセップカール（マシン）','ケーブルカール','プリーチャーカール','トライセプスプッシュダウン（ロープ）','トライセプスプッシュダウン（バー）','ケーブルオーバーヘッドエクステンション'],
-    '腹筋':['クランチマシン','ケーブルクランチ（ロープ）','ロータリートルソー','ケーブルウッドチョップ'],
+    '胸':  ['チェストプレスマシン','インクラインチェストプレスマシン','ペックデックフライ','ケーブルクロスオーバー (高位)','ケーブルクロスオーバー (中位)','ケーブルクロスオーバー (低位)','ディップスマシン'],
+    '背中':['ラットプルダウン (フロント・ワイド)','ラットプルダウン (ナローパラレル)','ラットプルダウン (リバース)','シーテッドローイング (ワイド)','シーテッドローイング (ナロー)','ケーブルローイング','アシストプルアップ (懸垂マシン)','バックエクステンションマシン','リバースフライマシン','ケーブルハイロウ','ケーブルストレートアームプルダウン'],
+    '脚':  ['45度レッグプレス','ホリゾンタルレッグプレス','ライイングレッグカール','シーテッドレッグカール','レッグエクステンション','アブダクション (外転)','アダクション (内転)','スタンディングカーフレイズマシン','シーテッドカーフレイズマシン','ヒップスラストマシン','ハックスクワットマシン','Vスクワットマシン'],
+    '肩':  ['ショルダープレスマシン','サイドレイズマシン','リアデルトマシン','ケーブルサイドレイズ','ケーブルフロントレイズ','ケーブルフェイスプル','ケーブルアップライトロウ'],
+    '腕':  ['バイセップカールマシン','ケーブルバイセップカール','ケーブルハンマーカール (ロープ)','トライセプスマシン','ケーブルトライセプスプッシュダウン (ストレートバー)','ケーブルトライセプスプッシュダウン (ロープ)','ケーブルオーバーヘッドトライセプスエクステンション'],
+    '腹筋':['アブドミナルクランチマシン','トーソローテーションマシン','ケーブルクランチ (ロープ)']
   },
   '自重': {
-    '胸':  ['プッシュアップ（腕立て伏せ）','ワイドプッシュアップ','ナロープッシュアップ','インクラインプッシュアップ','デクラインプッシュアップ','ダイヤモンドプッシュアップ','アーチャープッシュアップ','ディップス'],
-    '背中':['懸垂（チンアップ）','懸垂（プルアップ ワイド）','懸垂（ニュートラルグリップ）','インバーテッドロウ','スーパーマン','バックエクステンション'],
-    '脚':  ['スクワット（自重）','ジャンプスクワット','スプリットスクワット','ブルガリアンスプリットスクワット（自重）','ランジ（自重）','ウォーキングランジ','グルートブリッジ','ヒップスラスト（自重）','ノルディックカール','カーフレイズ（自重）','シシースクワット'],
-    '肩':  ['パイクプッシュアップ','ハンドスタンドプッシュアップ','エルボーサークル'],
-    '腕':  ['クローズグリッププッシュアップ','ベンチディップス'],
-    '腹筋':['クランチ','シットアップ','リバースクランチ','プランク','サイドプランク','レッグレイズ（寝て）','ハンギングレッグレイズ','マウンテンクライマー','ロシアンツイスト','バイシクルクランチ','アブローラー','ドラゴンフラッグ'],
+    '胸':  ['プッシュアップ (腕立て伏せ)','ワイドプッシュアップ','ナロー/ダイヤモンドプッシュアップ','インクラインプッシュアップ','デクラインプッシュアップ','アーチャープッシュアップ','クラッププッシュアップ','ディップス (自重)'],
+    '背中':['懸垂 (プルアップ・順手ワイド)','懸垂 (チンアップ・逆手)','懸垂 (ニュートラルグリップ)','インバーテッドロウ (斜め懸垂)','スーパーマン','バックエクステンション (自重)','タオルラットプルダウン'],
+    '脚':  ['エアスクワット (自重)','ジャンプスクワット','ピストルスクワット (片足スクワット)','ブルガリアンスプリットスクワット (自重)','フォワードランジ','バックランジ','ウォーキングランジ','グルートブリッジ','ヒップスラスト (自重)','ノルディックハムストリングカール','カーフレイズ (自重)','シシースクワット (自重)'],
+    '肩':  ['パイクプッシュアップ','ハンドスタンドプッシュアップ (倒立腕立て)','ディクラインパイクプッシュアップ','ショルダータップ'],
+    '腕':  ['ベンチディップス','ナロープッシュアップ','ボディウェイトトライセプスエクステンション'],
+    '腹筋':['クランチ','シットアップ','リバースクランチ','レッグレイズ (床)','ハンギングレッグレイズ','ハンギングニーレイズ','プランク','サイドプランク','アブローラー (膝つき)','アブローラー (立ちコロ)','マウンテンクライマー','バイシクルクランチ','ロシアンツイスト','ドラゴンフラッグ']
   },
+  '有酸素': {
+    '有酸素': [
+      'トレッドミル (ランニング)',
+      'トレッドミル (傾斜ウォーキング)',
+      'エアロバイク (フィットネスバイク)',
+      'クロストレーナー (エリプティカル)',
+      'ステッパー (階段のぼり)',
+      'ローイングマシン',
+      '屋外ランニング',
+      '屋外ウォーキング'
+    ]
+  }
 };
 
 // ─── App State ──────────────────────────────────────────────
@@ -153,9 +158,9 @@ const state = {
   selectedEquip: 'バーベル',
   selectedCat:   '胸',
   selectedFood:  null,
-  pendingMeals:  [], // Batch entry pending list
+  pendingMeals:  [],
   calYear: new Date().getFullYear(),
-  calMonth: new Date().getMonth(), // 0-indexed
+  calMonth: new Date().getMonth(),
   selectedCalDate: null,
 };
 
@@ -261,7 +266,7 @@ function onTimerEnd() {
   } catch(_){}
 }
 
-// ─── Training / Exercise ─────────────────────────────────────
+// ─── Training / Exercise / Cardio ─────────────────────────────
 function getAllExercisesForEquip(equip) {
   const built = EX_DB[equip] || {};
   const custom = state.customEx[equip] || {};
@@ -275,12 +280,30 @@ function getAllExercisesForEquip(equip) {
 }
 
 function buildCategoryTabs() {
+  const isCardio = state.selectedEquip === '有酸素';
+  const catContainer = qs('#cat-tabs-container');
+  const strengthInputs = qs('#strength-inputs');
+  const cardioInputs = qs('#cardio-inputs');
+
+  if (isCardio) {
+    catContainer.classList.add('hidden');
+    strengthInputs.classList.add('hidden');
+    cardioInputs.classList.remove('hidden');
+    state.selectedCat = '有酸素';
+  } else {
+    catContainer.classList.remove('hidden');
+    strengthInputs.classList.remove('hidden');
+    cardioInputs.classList.add('hidden');
+  }
+
   const tabs = qs('#category-tabs');
   const cats = Object.keys(getAllExercisesForEquip(state.selectedEquip));
   if (!cats.includes(state.selectedCat)) state.selectedCat = cats[0] || '胸';
+
   tabs.innerHTML = cats.map(cat =>
     `<button class="cat-btn ${cat===state.selectedCat?'active':''}" data-cat="${cat}">${cat}</button>`
   ).join('');
+
   tabs.querySelectorAll('.cat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       tabs.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
@@ -289,6 +312,7 @@ function buildCategoryTabs() {
       populateExerciseSelect();
     });
   });
+
   populateExerciseSelect();
 }
 
@@ -303,16 +327,25 @@ function showPrevRecord() {
   const ex   = qs('#exercise-select').value;
   const prev = [...state.workouts].filter(w=>w.exercise===ex).sort((a,b)=>b.date.localeCompare(a.date))[0];
   const alert = qs('#prev-record-alert');
+
   if (prev) {
-    qs('#prev-record-text').textContent = `前回 (${prev.date}) — ${prev.weight}kg × ${prev.reps}rep × ${prev.sets}set`;
+    if (prev.isCardio) {
+      qs('#prev-record-text').textContent = `前回 (${prev.date}) — 傾斜${prev.incline}% · 速度${prev.speed}km/h · ${prev.time}分 (${prev.calories}kcal)`;
+    } else {
+      qs('#prev-record-text').textContent = `前回 (${prev.date}) — ${prev.weight}kg × ${prev.reps}rep × ${prev.sets}set`;
+    }
     alert.classList.remove('hidden');
-  } else { alert.classList.add('hidden'); }
+  } else {
+    alert.classList.add('hidden');
+  }
   updateRmDisplay();
+  updateCardioCalorie();
 }
 
 function calcOneRM(w,r) { return (!w||!r||r<1) ? null : w*(1+r/30); }
 
 function updateRmDisplay() {
+  if (state.selectedEquip === '有酸素') return;
   const w=parseFloat(qs('#workout-weight').value)||0;
   const r=parseInt(qs('#workout-reps').value)||0;
   const s=parseInt(qs('#workout-sets').value)||0;
@@ -321,35 +354,81 @@ function updateRmDisplay() {
   qs('#val-vol').textContent  = (w&&r&&s)? `${(w*r*s).toFixed(0)} kg` : '— kg';
 }
 
+function updateCardioCalorie() {
+  if (state.selectedEquip !== '有酸素') return;
+  const incline = parseFloat(qs('#cardio-incline').value) || 0;
+  const speed   = parseFloat(qs('#cardio-speed').value)   || 0;
+  const timeMin = parseFloat(qs('#cardio-time').value)    || 0;
+  const bodyWeight = state.profile.weight || 70;
+
+  if (speed <= 0 || timeMin <= 0) {
+    qs('#val-cardio-cal').textContent = '— kcal';
+    return;
+  }
+
+  const speedMpm = (speed * 1000) / 60;
+  const inclineFrac = incline / 100;
+  let mets = 3.5 + (0.1 * speedMpm) + (1.8 * speedMpm * inclineFrac);
+  mets = Math.max(2.5, Math.min(20, mets / 3.5));
+
+  const kcal = (mets * bodyWeight * (timeMin / 60) * 1.05);
+  qs('#val-cardio-cal').textContent = `${Math.round(kcal)} kcal`;
+}
+
 function renderWorkoutHistory() {
   const list   = qs('#workout-history-list');
   const recent = [...state.workouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,20);
+
   if (!recent.length) {
     list.innerHTML=`<div class="empty-state"><i data-lucide="dumbbell" style="width:34px;height:34px;display:block;margin:0 auto 10px;opacity:0.2;"></i>まだ記録がありません<br><small>最初のセットを記録しましょう！</small></div>`;
     lucide.createIcons({nodes:list.querySelectorAll('[data-lucide]')});
     return;
   }
-  list.innerHTML = recent.map(w=>`
-    <div class="log-item">
-      <div style="flex:1;min-width:0;">
-        <div class="log-item-meta">${w.date} · ${w.equip||''}</div>
-        <div class="log-item-title">${w.exercise}</div>
-        <div class="log-item-stats">
-          <span class="chip chip-cyan">${w.weight}kg</span>
-          <span class="chip chip-green">${w.reps}rep</span>
-          <span class="chip chip-amber">${w.sets}set</span>
-          ${w.oneRM?`<span class="chip chip-purple">1RM≈${w.oneRM.toFixed(1)}kg</span>`:''}
+
+  list.innerHTML = recent.map(w => {
+    if (w.isCardio) {
+      return `
+        <div class="log-item">
+          <div style="flex:1;min-width:0;">
+            <div class="log-item-meta">${w.date} · 🏃 有酸素</div>
+            <div class="log-item-title">${w.exercise}</div>
+            <div class="log-item-stats">
+              <span class="chip chip-amber">傾斜 ${w.incline}%</span>
+              <span class="chip chip-cyan">速度 ${w.speed}km/h</span>
+              <span class="chip chip-green">時間 ${w.time}分</span>
+              <span class="chip chip-orange">${w.calories}kcal</span>
+            </div>
+            ${w.notes?`<div style="font-size:0.72rem;color:var(--text-3);margin-top:4px;">${w.notes}</div>`:''}
+          </div>
+          <button class="del-btn" data-id="${w.id}" aria-label="削除">
+            <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+          </button>
         </div>
-        ${w.notes?`<div style="font-size:0.72rem;color:var(--text-3);margin-top:4px;">${w.notes}</div>`:''}
+      `;
+    }
+    return `
+      <div class="log-item">
+        <div style="flex:1;min-width:0;">
+          <div class="log-item-meta">${w.date} · ${w.equip||''}</div>
+          <div class="log-item-title">${w.exercise}</div>
+          <div class="log-item-stats">
+            <span class="chip chip-cyan">${w.weight}kg</span>
+            <span class="chip chip-green">${w.reps}rep</span>
+            <span class="chip chip-amber">${w.sets}set</span>
+            ${w.oneRM?`<span class="chip chip-purple">1RM≈${w.oneRM.toFixed(1)}kg</span>`:''}
+          </div>
+          ${w.notes?`<div style="font-size:0.72rem;color:var(--text-3);margin-top:4px;">${w.notes}</div>`:''}
+        </div>
+        <button class="del-btn" data-id="${w.id}" aria-label="削除">
+          <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+        </button>
       </div>
-      <button class="del-btn" data-id="${w.id}" aria-label="削除">
-        <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
-      </button>
-    </div>
-  `).join('');
-  list.querySelectorAll('.del-btn').forEach(btn=>btn.addEventListener('click',()=>{
-    state.workouts=state.workouts.filter(w=>String(w.id)!==btn.dataset.id);
-    saveAll();renderWorkoutHistory();updateDashboard();if(currentTab==='analytics')renderCalendar();
+    `;
+  }).join('');
+
+  list.querySelectorAll('.del-btn').forEach(btn => btn.addEventListener('click', () => {
+    state.workouts = state.workouts.filter(w => String(w.id) !== btn.dataset.id);
+    saveAll(); renderWorkoutHistory(); updateDashboard(); if(currentTab==='analytics') renderCalendar();
   }));
   lucide.createIcons({nodes:list.querySelectorAll('[data-lucide]')});
 }
@@ -389,7 +468,6 @@ function selectFood(food) {
   qs('#food-selected-meta').textContent = `100gあたり: ${food.cal}kcal · P${food.p}g · F${food.f}g · C${food.c}g`;
   qs('#food-selected-card').classList.remove('hidden');
 
-  // Render unit buttons
   const uWrap = qs('#unit-btns-wrap');
   const uDiv  = qs('#unit-btns');
   if (food.units && food.units.length > 0) {
@@ -404,7 +482,7 @@ function selectFood(food) {
       });
     });
     uWrap.classList.remove('hidden');
-    qs('#food-grams').value = food.units[0][1]; // Default first unit
+    qs('#food-grams').value = food.units[0][1];
   } else {
     uWrap.classList.add('hidden');
     qs('#food-grams').value = 100;
@@ -458,7 +536,6 @@ function addCurrentToPendingList() {
   renderPendingList();
   toast(`「${name}」をリストに追加`, 'info', 1500);
 
-  // Reset current selection for fast consecutive typing
   state.selectedFood = null;
   qs('#food-search').value = '';
   qs('#food-grams').value = '';
@@ -546,6 +623,7 @@ function resetMealModal() {
   qs('#unit-btns-wrap').classList.add('hidden');
   hideFoodDropdown();
   qs('#pfc-cal-preview').textContent = '—';
+  qs('#pfc-p-preview').textContent   = '—';
   qs('#pfc-p-preview').textContent   = '—';
   qs('#pfc-f-preview').textContent   = '—';
   qs('#pfc-c-preview').textContent   = '—';
@@ -660,7 +738,6 @@ function renderCalendar() {
   const today = todayKey();
 
   let html = '';
-  // Empty offset cells
   for (let i = 0; i < firstDay; i++) {
     html += `<div class="cal-day-empty"></div>`;
   }
@@ -714,21 +791,30 @@ function showCalendarDayDetail(dateStr) {
 
   let html = `<div class="cal-detail-date">📅 ${dateStr} の記録</div>`;
 
-  // Workout section
+  // Workout / Cardio
   html += `<div class="cal-detail-section">
-    <div class="cal-detail-section-title" style="color:var(--cyan);">🏋️ 筋トレ (${workouts.length}種目)</div>`;
+    <div class="cal-detail-section-title" style="color:var(--cyan);">🏋️ 運動・トレーニング (${workouts.length}件)</div>`;
   if (workouts.length) {
-    html += workouts.map(w => `
-      <div style="font-size:0.8rem;margin-bottom:4px;">
-        <strong>${w.exercise}</strong> — <span class="chip chip-cyan">${w.weight}kg × ${w.reps}r × ${w.sets}s</span>
-      </div>
-    `).join('');
+    html += workouts.map(w => {
+      if (w.isCardio) {
+        return `
+          <div style="font-size:0.8rem;margin-bottom:4px;">
+            <strong>🏃 ${w.exercise}</strong> — <span class="chip chip-amber">傾斜${w.incline}%</span> <span class="chip chip-cyan">${w.speed}km/h</span> <span class="chip chip-green">${w.time}分</span> <span class="chip chip-orange">${w.calories}kcal</span>
+          </div>
+        `;
+      }
+      return `
+        <div style="font-size:0.8rem;margin-bottom:4px;">
+          <strong>🏋️ ${w.exercise}</strong> — <span class="chip chip-cyan">${w.weight}kg × ${w.reps}r × ${w.sets}s</span>
+        </div>
+      `;
+    }).join('');
   } else {
     html += `<div class="cal-detail-empty">記録なし</div>`;
   }
   html += `</div>`;
 
-  // Meal section
+  // Meal
   html += `<div class="cal-detail-section">
     <div class="cal-detail-section-title" style="color:var(--orange);">🍱 食事 (${Math.round(dayMealTotal.cal)} kcal)</div>`;
   if (meals.length) {
@@ -745,7 +831,7 @@ function showCalendarDayDetail(dateStr) {
   }
   html += `</div>`;
 
-  // InBody section
+  // InBody
   html += `<div class="cal-detail-section">
     <div class="cal-detail-section-title" style="color:var(--green);">⚖️ 体組成</div>`;
   if (inbody) {
@@ -762,27 +848,80 @@ function showCalendarDayDetail(dateStr) {
   card.innerHTML = html;
 }
 
-// ─── Dashboard ───────────────────────────────────────────────
+// ─── Dashboard (Calorie Balance & Summary) ─────────────────────
 function updateDashboard() {
-  const t=getTodayTotals(), g=state.goals, CIRC=188.5;
-  const pct=clamp(t.cal/g.cal,0,1);
-  qs('#dash-cal-ring').style.strokeDashoffset=CIRC*(1-pct);
-  qs('#dash-cal-num').textContent=Math.round(t.cal);
-  qs('#dash-cal-target').textContent=g.cal;
-  qs('#dash-cal-pct').textContent=Math.round(pct*100)+'%';
-  qs('#dash-p-val').textContent=`${t.p.toFixed(1)}g`; qs('#dash-p-tgt').textContent=`${g.p}g`;
-  qs('#dash-f-val').textContent=`${t.f.toFixed(1)}g`; qs('#dash-f-tgt').textContent=`${g.f}g`;
-  qs('#dash-c-val').textContent=`${t.c.toFixed(1)}g`; qs('#dash-c-tgt').textContent=`${g.c}g`;
-  qs('#dash-p-bar').style.width=clamp((t.p/g.p)*100,0,100)+'%';
-  qs('#dash-f-bar').style.width=clamp((t.f/g.f)*100,0,100)+'%';
-  qs('#dash-c-bar').style.width=clamp((t.c/g.c)*100,0,100)+'%';
-  const sets=state.workouts.filter(w=>w.date===todayKey()).reduce((a,w)=>a+(w.sets||0),0);
-  qs('#dash-workout-sub').textContent=`本日 ${sets} セット`;
+  const t = getTodayTotals();
+  const g = state.goals;
+  const CIRC = 188.5;
+
+  // Calorie ring progress
+  const pct = clamp(t.cal / g.cal, 0, 1);
+  qs('#dash-cal-ring').style.strokeDashoffset = CIRC * (1 - pct);
+  qs('#dash-cal-num').textContent    = Math.round(t.cal);
+  qs('#dash-cal-target').textContent = g.cal;
+  qs('#dash-cal-pct').textContent    = Math.round(pct * 100) + '%';
+
+  // Macros
+  qs('#dash-p-val').textContent = `${t.p.toFixed(1)}g`; qs('#dash-p-tgt').textContent = `${g.p}g`;
+  qs('#dash-f-val').textContent = `${t.f.toFixed(1)}g`; qs('#dash-f-tgt').textContent = `${g.f}g`;
+  qs('#dash-c-val').textContent = `${t.c.toFixed(1)}g`; qs('#dash-c-tgt').textContent = `${g.c}g`;
+  qs('#dash-p-bar').style.width = clamp((t.p / g.p) * 100, 0, 100) + '%';
+  qs('#dash-f-bar').style.width = clamp((t.f / g.f) * 100, 0, 100) + '%';
+  qs('#dash-c-bar').style.width = clamp((t.c / g.c) * 100, 0, 100) + '%';
+
+  // Calculate Daily Total Expenditure (Metabolism)
+  // BMR (Mifflin-St Jeor) + Base activity + Today's Cardio
+  const w   = state.profile.weight || 70;
+  const h   = state.profile.height || 172;
+  const a   = state.profile.age    || 28;
+  const gen = state.profile.gender || 'male';
+  const act = state.profile.activity || 'moderate';
+
+  const bmr = gen === 'male' ? (10*w + 6.25*h - 5*a + 5) : (10*w + 6.25*h - 5*a - 161);
+  const actFactors = { sedentary:1.2, light:1.375, moderate:1.55, active:1.725 };
+  const baseTDEE   = Math.round(bmr * (actFactors[act] || 1.55));
+
+  // Today's cardio burn
+  const todayWorkouts = state.workouts.filter(w => w.date === todayKey());
+  const cardioBurn    = todayWorkouts.filter(w => w.isCardio).reduce((acc, w) => acc + (w.calories || 0), 0);
+
+  const totalExpenditure = baseTDEE + cardioBurn;
+  const intake           = Math.round(t.cal);
+  const balance          = intake - totalExpenditure;
+
+  qs('#bal-in-val').textContent     = intake;
+  qs('#bal-out-val').textContent    = totalExpenditure;
+  qs('#bal-cardio-val').textContent = cardioBurn;
+
+  const balBadge = qs('#bal-status-val');
+  if (balance > 0) {
+    balBadge.textContent = `＋${balance} kcal`;
+    balBadge.style.color = 'var(--amber)'; // Surplus
+  } else if (balance < 0) {
+    balBadge.textContent = `${balance} kcal`;
+    balBadge.style.color = 'var(--cyan)';  // Deficit
+  } else {
+    balBadge.textContent = `±0 kcal`;
+    balBadge.style.color = 'var(--green)';
+  }
+
+  // Quick card subtext
+  const strengthSets = todayWorkouts.filter(w => !w.isCardio).reduce((acc, w) => acc + (w.sets || 0), 0);
+  const cardioMins   = todayWorkouts.filter(w => w.isCardio).reduce((acc, w) => acc + (w.time || 0), 0);
+
+  let subText = `本日 `;
+  if (strengthSets > 0 && cardioMins > 0) subText += `${strengthSets}セット / 有酸素${cardioMins}分`;
+  else if (strengthSets > 0) subText += `${strengthSets}セット`;
+  else if (cardioMins > 0) subText += `有酸素 ${cardioMins}分`;
+  else subText += `0 セット`;
+
+  qs('#dash-workout-sub').textContent = subText;
   updateInBodyLatest();
-  const d=new Date(), days=['日','月','火','水','木','金','土'];
-  qs('#hero-date').textContent=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}（${days[d.getDay()]}）`;
-  const ms=new Date();
-  qs('#meal-date-chip').textContent=`${ms.getMonth()+1}/${ms.getDate()}`;
+
+  const d = new Date(), days = ['日','月','火','水','木','金','土'];
+  qs('#hero-date').textContent = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}（${days[d.getDay()]}）`;
+  const ms = new Date();
+  qs('#meal-date-chip').textContent = `${ms.getMonth()+1}/${ms.getDate()}`;
 }
 
 // ─── Analytics Charts ────────────────────────────────────────
@@ -831,13 +970,26 @@ function renderWorkoutChart(exercise) {
   const records=state.workouts.filter(w=>w.exercise===exercise).sort((a,b)=>a.date.localeCompare(b.date)).slice(-20);
   const ctx=qs('#chart-workout').getContext('2d');
   if (chartWorkout) chartWorkout.destroy();
-  chartWorkout=new Chart(ctx,{type:'bar',data:{
-    labels:records.map(w=>w.date.slice(5)),
-    datasets:[
-      {label:'ボリューム(kg)',data:records.map(w=>w.weight*w.reps*w.sets),backgroundColor:'rgba(56,189,248,0.45)',borderColor:'#38bdf8',borderWidth:1.5,yAxisID:'y',order:2},
-      {label:'推定1RM(kg)',data:records.map(w=>w.oneRM||0),type:'line',borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.08)',tension:0.4,pointRadius:4,yAxisID:'y1',order:1}
-    ]
-  },options:{...CHART_BASE,scales:{x:{...CHART_BASE.scales.x},y:{...CHART_BASE.scales.y,position:'left'},y1:{...CHART_BASE.scales.y,position:'right',grid:{drawOnChartArea:false}}}}});
+
+  const isCardio = records.length > 0 && records[0].isCardio;
+
+  if (isCardio) {
+    chartWorkout=new Chart(ctx,{type:'bar',data:{
+      labels:records.map(w=>w.date.slice(5)),
+      datasets:[
+        {label:'時間(分)',data:records.map(w=>w.time),backgroundColor:'rgba(34,197,94,0.45)',borderColor:'#22c55e',borderWidth:1.5,yAxisID:'y',order:2},
+        {label:'消費カロリー(kcal)',data:records.map(w=>w.calories),type:'line',borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,pointRadius:4,yAxisID:'y1',order:1}
+      ]
+    },options:{...CHART_BASE,scales:{x:{...CHART_BASE.scales.x},y:{...CHART_BASE.scales.y,position:'left'},y1:{...CHART_BASE.scales.y,position:'right',grid:{drawOnChartArea:false}}}}});
+  } else {
+    chartWorkout=new Chart(ctx,{type:'bar',data:{
+      labels:records.map(w=>w.date.slice(5)),
+      datasets:[
+        {label:'ボリューム(kg)',data:records.map(w=>w.weight*w.reps*w.sets),backgroundColor:'rgba(56,189,248,0.45)',borderColor:'#38bdf8',borderWidth:1.5,yAxisID:'y',order:2},
+        {label:'推定1RM(kg)',data:records.map(w=>w.oneRM||0),type:'line',borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.08)',tension:0.4,pointRadius:4,yAxisID:'y1',order:1}
+      ]
+    },options:{...CHART_BASE,scales:{x:{...CHART_BASE.scales.x},y:{...CHART_BASE.scales.y,position:'left'},y1:{...CHART_BASE.scales.y,position:'right',grid:{drawOnChartArea:false}}}}});
+  }
 }
 
 function renderPfcChart() {
@@ -909,15 +1061,12 @@ function refreshAll() {
 
 // ─── Event Bindings ──────────────────────────────────────────
 function bindEvents() {
-  // Nav
   qsa('.nav-item').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
   qsa('.nav-to').forEach(el=>el.addEventListener('click',()=>switchTab(el.dataset.target)));
 
-  // Modal close
   qsa('.modal-close').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.modal)));
   qsa('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
 
-  // Settings
   qs('#settings-open-btn').addEventListener('click',()=>{ loadSettingsToForm(); openModal('modal-settings'); });
   qsa('.settings-tab-btn').forEach(btn=>btn.addEventListener('click',()=>{
     qsa('.settings-tab-btn').forEach(b=>b.classList.remove('active'));
@@ -942,7 +1091,6 @@ function bindEvents() {
     saveAll(); refreshAll(); toast('全データを削除しました','warning'); closeModal('modal-settings');
   });
 
-  // Calendar prev/next
   qs('#cal-prev').addEventListener('click', () => {
     state.calMonth--;
     if (state.calMonth < 0) { state.calMonth = 11; state.calYear--; }
@@ -954,7 +1102,6 @@ function bindEvents() {
     renderCalendar();
   });
 
-  // Timer
   qs('#timer-toggle-btn').addEventListener('click',()=>timerRunning?stopTimer():startTimer());
   qs('#timer-reset-btn').addEventListener('click',resetTimer);
   qsa('.timer-preset-btn').forEach(btn=>btn.addEventListener('click',()=>timerSetTotal(parseInt(btn.dataset.sec))));
@@ -967,7 +1114,6 @@ function bindEvents() {
     toast(timerSoundOn?'サウンド ON':'サウンド OFF','info',1500);
   });
 
-  // Equipment tabs
   qsa('.equip-btn').forEach(btn=>btn.addEventListener('click',()=>{
     qsa('.equip-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
@@ -975,27 +1121,62 @@ function bindEvents() {
     buildCategoryTabs();
   }));
 
-  // Workout form
   qs('#exercise-select').addEventListener('change',showPrevRecord);
   qs('#workout-weight').addEventListener('input',updateRmDisplay);
   qs('#workout-reps').addEventListener('input',updateRmDisplay);
   qs('#workout-sets').addEventListener('input',updateRmDisplay);
+
+  qs('#cardio-incline').addEventListener('input',updateCardioCalorie);
+  qs('#cardio-speed').addEventListener('input',updateCardioCalorie);
+  qs('#cardio-time').addEventListener('input',updateCardioCalorie);
+
   qs('#workout-form').addEventListener('submit',e=>{
     e.preventDefault();
     const ex=qs('#exercise-select').value;
-    const w=parseFloat(qs('#workout-weight').value);
-    const r=parseInt(qs('#workout-reps').value);
-    const s=parseInt(qs('#workout-sets').value);
     const n=qs('#workout-notes').value.trim();
-    if (!ex||!w||!r||!s) { toast('種目・重量・Rep・Set を入力してください','warning'); return; }
-    state.workouts.push({id:Date.now(),date:todayKey(),equip:state.selectedEquip,exercise:ex,weight:w,reps:r,sets:s,notes:n,oneRM:calcOneRM(w,r)});
-    saveAll(); renderWorkoutHistory(); updateDashboard();
-    toast(`${ex} ${w}kg × ${r}rep × ${s}set を記録しました ✓`,'success');
+
+    if (state.selectedEquip === '有酸素') {
+      const incline = parseFloat(qs('#cardio-incline').value) || 0;
+      const speed   = parseFloat(qs('#cardio-speed').value)   || 0;
+      const time    = parseInt(qs('#cardio-time').value)       || 0;
+
+      if (!ex || speed <= 0 || time <= 0) {
+        toast('速度 (km/h) と 時間 (分) を入力してください','warning');
+        return;
+      }
+
+      const caloriesStr = qs('#val-cardio-cal').textContent;
+      const calories = parseInt(caloriesStr) || 0;
+
+      state.workouts.push({
+        id: Date.now(), date: todayKey(),
+        equip: '有酸素', exercise: ex, isCardio: true,
+        incline, speed, time, calories, notes: n
+      });
+
+      saveAll(); renderWorkoutHistory(); updateDashboard();
+      toast(`🏃 ${ex} ${time}分 (${calories}kcal) を記録しました ✓`,'success');
+
+    } else {
+      const w=parseFloat(qs('#workout-weight').value);
+      const r=parseInt(qs('#workout-reps').value);
+      const s=parseInt(qs('#workout-sets').value);
+      if (!ex||!w||!r||!s) { toast('種目・重量・Rep・Set を入力してください','warning'); return; }
+
+      state.workouts.push({
+        id:Date.now(), date:todayKey(),
+        equip:state.selectedEquip, exercise:ex, isCardio:false,
+        weight:w, reps:r, sets:s, notes:n, oneRM:calcOneRM(w,r)
+      });
+
+      saveAll(); renderWorkoutHistory(); updateDashboard();
+      toast(`${ex} ${w}kg × ${r}rep × ${s}set を記録しました ✓`,'success');
+      if (!timerRunning) startTimer();
+    }
+
     qs('#workout-notes').value='';
-    if (!timerRunning) startTimer();
   });
 
-  // Custom exercise
   qs('#custom-ex-open-btn').addEventListener('click',()=>openModal('modal-custom-ex'));
   qs('#save-custom-ex-btn').addEventListener('click',()=>{
     const name=qs('#modal-custom-name').value.trim();
@@ -1012,7 +1193,6 @@ function bindEvents() {
     closeModal('modal-custom-ex');
   });
 
-  // Food search autocomplete
   const foodSearch = qs('#food-search');
   foodSearch.addEventListener('input',()=>{
     const q=foodSearch.value.trim();
@@ -1026,24 +1206,19 @@ function bindEvents() {
   foodSearch.addEventListener('blur',()=>{ setTimeout(hideFoodDropdown,150); });
   foodSearch.addEventListener('keydown',e=>{ if (e.key==='Escape') hideFoodDropdown(); });
 
-  // Grams + calc
   qs('#food-grams').addEventListener('input',calcFoodPFC);
   qs('#food-calc-btn').addEventListener('click',calcFoodPFC);
 
-  // Add to list button (Batch)
   qs('#add-to-list-btn').addEventListener('click', addCurrentToPendingList);
 
-  // Save all batch meals button
   qs('#save-all-btn').addEventListener('click', () => {
     if (savePendingMealsBatch()) {
       closeModal('modal-meal');
     }
   });
 
-  // Meal open button
   qs('#meal-add-btn').addEventListener('click',()=>{ resetMealModal(); openModal('modal-meal'); });
 
-  // Save single meal (or pending batch)
   qs('#save-meal-btn').addEventListener('click',()=>{
     if (state.pendingMeals.length > 0) {
       savePendingMealsBatch();
@@ -1063,7 +1238,6 @@ function bindEvents() {
     closeModal('modal-meal'); toast(`「${name}」を記録しました ✓`,'success');
   });
 
-  // InBody add
   qs('#inbody-add-btn').addEventListener('click',()=>{
     qs('#modal-inbody-date').value=todayKey();
     qs('#modal-inbody-weight').value=''; qs('#modal-inbody-fat').value='';
