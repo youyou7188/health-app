@@ -2,6 +2,8 @@
    FitPulse — app.js  (完全オフライン版)
    - 食材DB（ベースブレッド全種 + 定番単位設定含む）
    - 種目DB（筋トレ250+種目 + 有酸素運動）
+   - ⚡ 前回値の1タップコピー機能
+   - 📈 週平均・月平均体重トレンド算出
    - リアルタイム カロリー収支（代謝 - 摂取 = ＋/ー表示）
    - 有酸素機能（傾斜・速度・時間 ➔ 自動カロリー計算）
    - 食事の一括連続入力（バッチ登録）
@@ -162,6 +164,7 @@ const state = {
   calYear: new Date().getFullYear(),
   calMonth: new Date().getMonth(),
   selectedCalDate: null,
+  currentPrevWorkout: null,
 };
 
 // Timer
@@ -327,12 +330,13 @@ function showPrevRecord() {
   const ex   = qs('#exercise-select').value;
   const prev = [...state.workouts].filter(w=>w.exercise===ex).sort((a,b)=>b.date.localeCompare(a.date))[0];
   const alert = qs('#prev-record-alert');
+  state.currentPrevWorkout = prev || null;
 
   if (prev) {
     if (prev.isCardio) {
-      qs('#prev-record-text').textContent = `前回 (${prev.date}) — 傾斜${prev.incline}% · 速度${prev.speed}km/h · ${prev.time}分 (${prev.calories}kcal)`;
+      qs('#prev-record-text').textContent = `前回 (${prev.date}) — 傾斜${prev.incline}% · 速度${prev.speed}km/h · ${prev.time}分`;
     } else {
-      qs('#prev-record-text').textContent = `前回 (${prev.date}) — ${prev.weight}kg × ${prev.reps}rep × ${prev.sets}set`;
+      qs('#prev-record-text').textContent = `前回 (${prev.date}) — ${prev.weight}kg × ${prev.reps}r × ${prev.sets}s`;
     }
     alert.classList.remove('hidden');
   } else {
@@ -340,6 +344,24 @@ function showPrevRecord() {
   }
   updateRmDisplay();
   updateCardioCalorie();
+}
+
+function copyPrevRecordValues() {
+  const prev = state.currentPrevWorkout;
+  if (!prev) return;
+
+  if (prev.isCardio) {
+    qs('#cardio-incline').value = prev.incline || 0;
+    qs('#cardio-speed').value   = prev.speed   || 0;
+    qs('#cardio-time').value    = prev.time    || 0;
+    updateCardioCalorie();
+  } else {
+    qs('#workout-weight').value = prev.weight || '';
+    qs('#workout-reps').value   = prev.reps   || '';
+    qs('#workout-sets').value   = prev.sets   || 3;
+    updateRmDisplay();
+  }
+  toast('前回の記録を入力欄にコピーしました⚡', 'info', 1500);
 }
 
 function calcOneRM(w,r) { return (!w||!r||r<1) ? null : w*(1+r/30); }
@@ -624,7 +646,6 @@ function resetMealModal() {
   hideFoodDropdown();
   qs('#pfc-cal-preview').textContent = '—';
   qs('#pfc-p-preview').textContent   = '—';
-  qs('#pfc-p-preview').textContent   = '—';
   qs('#pfc-f-preview').textContent   = '—';
   qs('#pfc-c-preview').textContent   = '—';
   qs('#modal-meal-name').value = '';
@@ -682,7 +703,7 @@ function renderMealHistory() {
   lucide.createIcons({nodes:list.querySelectorAll('[data-lucide]')});
 }
 
-// ─── InBody ──────────────────────────────────────────────────
+// ─── InBody & Weight Trend ────────────────────────────────────
 function renderInBodyHistory() {
   const list=qs('#inbody-history-list'), hist=[...state.inbody].sort((a,b)=>b.date.localeCompare(a.date));
   if (!hist.length) {
@@ -712,18 +733,55 @@ function renderInBodyHistory() {
   }));
   lucide.createIcons({nodes:list.querySelectorAll('[data-lucide]')});
 }
+
 function updateInBodyLatest() {
-  const latest=[...state.inbody].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const sorted = [...state.inbody].sort((a,b)=>a.date.localeCompare(b.date));
+  const latest = sorted[sorted.length - 1];
+
   if (latest) {
-    qs('#val-inbody-weight').textContent=latest.weight;
-    qs('#val-inbody-fat').textContent=latest.fat;
-    qs('#val-inbody-muscle').textContent=latest.muscle;
-    qs('#inbody-latest-date').textContent=latest.date;
-    qs('#dash-inbody-sub').textContent=`最新: ${latest.date} / ${latest.weight}kg`;
+    qs('#val-inbody-weight').textContent = latest.weight;
+    qs('#val-inbody-fat').textContent    = latest.fat;
+    qs('#val-inbody-muscle').textContent = latest.muscle;
+    qs('#inbody-latest-date').textContent= latest.date;
+    qs('#dash-inbody-sub').textContent   = `最新: ${latest.date} / ${latest.weight}kg`;
   } else {
     ['#val-inbody-weight','#val-inbody-fat','#val-inbody-muscle'].forEach(s=>qs(s).textContent='—');
-    qs('#inbody-latest-date').textContent='未測定';
-    qs('#dash-inbody-sub').textContent='最新: 未登録';
+    qs('#inbody-latest-date').textContent = '未測定';
+    qs('#dash-inbody-sub').textContent    = '最新: 未登録';
+  }
+
+  // Calculate Weekly & Monthly Weight Trends
+  const now = new Date();
+  const msInDay = 86400000;
+
+  const past7Days  = sorted.filter(d => (now - new Date(d.date)) / msInDay <= 7);
+  const prev7Days  = sorted.filter(d => {
+    const diff = (now - new Date(d.date)) / msInDay;
+    return diff > 7 && diff <= 14;
+  });
+  const thisMonth  = sorted.filter(d => {
+    const dt = new Date(d.date);
+    return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+  });
+
+  const avg = arr => arr.length > 0 ? (arr.reduce((a,b)=>a+b.weight, 0) / arr.length) : null;
+
+  const weekAvg = avg(past7Days);
+  const prevAvg = avg(prev7Days);
+  const monthAvg = avg(thisMonth);
+
+  qs('#trend-week-val').textContent  = weekAvg ? `${weekAvg.toFixed(1)} kg` : '— kg';
+  qs('#trend-month-val').textContent = monthAvg ? `${monthAvg.toFixed(1)} kg` : '— kg';
+
+  const diffEl = qs('#trend-diff-val');
+  if (weekAvg && prevAvg) {
+    const diff = weekAvg - prevAvg;
+    const sign = diff > 0 ? '＋' : '';
+    diffEl.textContent = `${sign}${diff.toFixed(1)} kg`;
+    diffEl.style.color = diff > 0 ? 'var(--amber)' : diff < 0 ? 'var(--cyan)' : 'var(--green)';
+  } else {
+    diffEl.textContent = '— kg';
+    diffEl.style.color = 'var(--cyan)';
   }
 }
 
@@ -854,14 +912,12 @@ function updateDashboard() {
   const g = state.goals;
   const CIRC = 188.5;
 
-  // Calorie ring progress
   const pct = clamp(t.cal / g.cal, 0, 1);
   qs('#dash-cal-ring').style.strokeDashoffset = CIRC * (1 - pct);
   qs('#dash-cal-num').textContent    = Math.round(t.cal);
   qs('#dash-cal-target').textContent = g.cal;
   qs('#dash-cal-pct').textContent    = Math.round(pct * 100) + '%';
 
-  // Macros
   qs('#dash-p-val').textContent = `${t.p.toFixed(1)}g`; qs('#dash-p-tgt').textContent = `${g.p}g`;
   qs('#dash-f-val').textContent = `${t.f.toFixed(1)}g`; qs('#dash-f-tgt').textContent = `${g.f}g`;
   qs('#dash-c-val').textContent = `${t.c.toFixed(1)}g`; qs('#dash-c-tgt').textContent = `${g.c}g`;
@@ -869,8 +925,6 @@ function updateDashboard() {
   qs('#dash-f-bar').style.width = clamp((t.f / g.f) * 100, 0, 100) + '%';
   qs('#dash-c-bar').style.width = clamp((t.c / g.c) * 100, 0, 100) + '%';
 
-  // Calculate Daily Total Expenditure (Metabolism)
-  // BMR (Mifflin-St Jeor) + Base activity + Today's Cardio
   const w   = state.profile.weight || 70;
   const h   = state.profile.height || 172;
   const a   = state.profile.age    || 28;
@@ -881,7 +935,6 @@ function updateDashboard() {
   const actFactors = { sedentary:1.2, light:1.375, moderate:1.55, active:1.725 };
   const baseTDEE   = Math.round(bmr * (actFactors[act] || 1.55));
 
-  // Today's cardio burn
   const todayWorkouts = state.workouts.filter(w => w.date === todayKey());
   const cardioBurn    = todayWorkouts.filter(w => w.isCardio).reduce((acc, w) => acc + (w.calories || 0), 0);
 
@@ -896,16 +949,15 @@ function updateDashboard() {
   const balBadge = qs('#bal-status-val');
   if (balance > 0) {
     balBadge.textContent = `＋${balance} kcal`;
-    balBadge.style.color = 'var(--amber)'; // Surplus
+    balBadge.style.color = 'var(--amber)';
   } else if (balance < 0) {
     balBadge.textContent = `${balance} kcal`;
-    balBadge.style.color = 'var(--cyan)';  // Deficit
+    balBadge.style.color = 'var(--cyan)';
   } else {
     balBadge.textContent = `±0 kcal`;
     balBadge.style.color = 'var(--green)';
   }
 
-  // Quick card subtext
   const strengthSets = todayWorkouts.filter(w => !w.isCardio).reduce((acc, w) => acc + (w.sets || 0), 0);
   const cardioMins   = todayWorkouts.filter(w => w.isCardio).reduce((acc, w) => acc + (w.time || 0), 0);
 
@@ -1122,6 +1174,8 @@ function bindEvents() {
   }));
 
   qs('#exercise-select').addEventListener('change',showPrevRecord);
+  qs('#copy-prev-btn').addEventListener('click', copyPrevRecordValues);
+
   qs('#workout-weight').addEventListener('input',updateRmDisplay);
   qs('#workout-reps').addEventListener('input',updateRmDisplay);
   qs('#workout-sets').addEventListener('input',updateRmDisplay);

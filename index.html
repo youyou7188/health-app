@@ -110,6 +110,17 @@
     .balance-sub-title { font-size:0.62rem; color:var(--text-3); font-weight:700; text-transform:uppercase; margin-bottom:3px; }
     .balance-sub-val   { font-size:0.92rem; font-weight:800; }
 
+    /* WEIGHT TREND CARD */
+    .trend-card {
+      background:var(--bg-card); border:1px solid rgba(34,197,94,0.25);
+      border-radius:var(--r-lg); padding:14px; margin-bottom:12px;
+    }
+    .trend-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; text-align:center; margin-top:10px; }
+    .trend-box  { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--r-md); padding:9px 5px; }
+    .trend-label { font-size:0.63rem; color:var(--text-3); font-weight:700; margin-bottom:4px; }
+    .trend-val   { font-size:1.05rem; font-weight:800; color:var(--green); }
+    .trend-sub   { font-size:0.6rem; color:var(--text-3); margin-top:2px; }
+
     /* BUTTONS */
     .btn {
       display:inline-flex; align-items:center; justify-content:center; gap:6px;
@@ -244,11 +255,12 @@
 
     /* PREV RECORD */
     .prev-record {
-      display:flex; align-items:flex-start; gap:8px;
+      display:flex; flex-direction:column; gap:6px;
       background:rgba(56,189,248,0.07); border:1px solid rgba(56,189,248,0.2);
       border-radius:var(--r-md); padding:9px 11px; margin-bottom:10px;
       font-size:0.78rem; color:var(--text-2);
     }
+    .prev-record-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 
     /* 1RM ROW */
     .rm-row {
@@ -680,8 +692,15 @@
       </div>
 
       <div id="prev-record-alert" class="prev-record hidden">
-        <i data-lucide="clock" style="width:13px;height:13px;color:var(--cyan);flex-shrink:0;"></i>
-        <span id="prev-record-text"></span>
+        <div class="prev-record-row">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <i data-lucide="clock" style="width:13px;height:13px;color:var(--cyan);flex-shrink:0;"></i>
+            <span id="prev-record-text"></span>
+          </div>
+          <button type="button" id="copy-prev-btn" class="btn btn-cyan btn-sm" style="padding:3px 8px;font-size:0.7rem;flex-shrink:0;">
+            <i data-lucide="zap" style="width:11px;height:11px;"></i> 前回値をコピー
+          </button>
+        </div>
       </div>
 
       <!-- STRENGTH INPUT FIELDS -->
@@ -834,6 +853,34 @@
       </div>
     </div>
   </div>
+
+  <!-- WEIGHT TREND SUMMARY CARD -->
+  <div class="trend-card">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+      <i data-lucide="trending-down" style="width:15px;height:15px;color:var(--green);"></i>
+      <span style="font-size:0.83rem;font-weight:800;">体重トレンド (移動平均)</span>
+    </div>
+    <div style="font-size:0.68rem;color:var(--text-3);">日々の水分変動に左右されない実質的な変化</div>
+
+    <div class="trend-grid">
+      <div class="trend-box">
+        <div class="trend-label">今週平均</div>
+        <div class="trend-val" id="trend-week-val">— kg</div>
+        <div class="trend-sub" id="trend-week-sub">直近7日間</div>
+      </div>
+      <div class="trend-box">
+        <div class="trend-label">前週比</div>
+        <div class="trend-val" id="trend-diff-val" style="color:var(--cyan);">— kg</div>
+        <div class="trend-sub">先週平均との差</div>
+      </div>
+      <div class="trend-box">
+        <div class="trend-label">今月平均</div>
+        <div class="trend-val" id="trend-month-val" style="color:var(--purple);">— kg</div>
+        <div class="trend-sub">今月(1日〜)</div>
+      </div>
+    </div>
+  </div>
+
   <div class="action-grid-1">
     <button id="inbody-add-btn" class="btn btn-green btn-lg">
       <i data-lucide="plus-circle" style="width:16px;height:16px;"></i>
