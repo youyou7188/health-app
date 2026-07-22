@@ -1,5 +1,6 @@
 /* ============================================================
    FitPulse — app.js  (完全オフライン版)
+   - 初回プロファイル入力（未設定時にダイアログ自動表示）
    - 食材DB（ベースブレッド全種 + 定番単位設定含む）
    - 種目DB（筋トレ250+種目 + 有酸素運動）
    - ⚡ 前回値の1タップコピー機能
@@ -154,8 +155,8 @@ const state = {
   workouts : [],
   meals    : [],
   inbody   : [],
-  profile  : { weight:70, height:172, age:28, gender:'male', activity:'moderate', goal:'maintenance' },
-  goals    : { cal:2400, p:140, f:60, c:265 },
+  profile  : null, // Initialized as null for first setup
+  goals    : { cal:2000, p:130, f:50, c:250 },
   customEx : {},
   selectedEquip: 'バーベル',
   selectedCat:   '胸',
@@ -198,7 +199,9 @@ function saveAll() {
   localStorage.setItem(LS.MEALS,     JSON.stringify(state.meals));
   localStorage.setItem(LS.INBODY,    JSON.stringify(state.inbody));
   localStorage.setItem(LS.CUSTOM_EX, JSON.stringify(state.customEx));
-  localStorage.setItem(LS.PROFILE,   JSON.stringify({...state.profile, goals:state.goals}));
+  if (state.profile) {
+    localStorage.setItem(LS.PROFILE, JSON.stringify({...state.profile, goals:state.goals}));
+  }
 }
 
 function loadAll() {
@@ -208,7 +211,47 @@ function loadAll() {
   state.inbody    = p(LS.INBODY)    || [];
   state.customEx  = p(LS.CUSTOM_EX) || {};
   const prof = p(LS.PROFILE);
-  if (prof) { if (prof.goals) { Object.assign(state.goals, prof.goals); delete prof.goals; } Object.assign(state.profile, prof); }
+  if (prof) {
+    if (prof.goals) { Object.assign(state.goals, prof.goals); delete prof.goals; }
+    state.profile = prof;
+  }
+}
+
+// ─── First Time Setup Check ─────────────────────────────────
+function checkFirstTimeSetup() {
+  if (!state.profile) {
+    openModal('modal-first-setup');
+  }
+}
+
+function handleFirstSetupSubmit(e) {
+  e.preventDefault();
+  const gender   = qs('#setup-gender').value;
+  const age      = parseInt(qs('#setup-age').value) || 28;
+  const height   = parseFloat(qs('#setup-height').value) || 170;
+  const weight   = parseFloat(qs('#setup-weight').value) || 65;
+  const activity = qs('#setup-activity').value;
+
+  const bmr = gender === 'male' ? (10*weight + 6.25*height - 5*age + 5) : (10*weight + 6.25*height - 5*age - 161);
+  const actFactors = { sedentary:1.2, light:1.375, moderate:1.55, active:1.725 };
+  const tdee = Math.round(bmr * (actFactors[activity] || 1.55));
+
+  const p = Math.round(weight * 2);
+  const f = Math.round((tdee * 0.25) / 9);
+  const c = Math.max(0, Math.round((tdee - p*4 - f*9) / 4));
+
+  state.profile = { weight, height, age, gender, activity, goal:'maintenance' };
+  state.goals = { cal: tdee, p, f, c };
+
+  // Add initial weight to InBody log if empty
+  if (state.inbody.length === 0) {
+    state.inbody.push({ id: Date.now(), date: todayKey(), weight, fat: 0, muscle: 0, note: '初期設定データ' });
+  }
+
+  saveAll();
+  closeModal('modal-first-setup');
+  refreshAll();
+  toast('初期設定が完了しました！💪', 'success');
 }
 
 // ─── Navigation ─────────────────────────────────────────────
@@ -381,7 +424,7 @@ function updateCardioCalorie() {
   const incline = parseFloat(qs('#cardio-incline').value) || 0;
   const speed   = parseFloat(qs('#cardio-speed').value)   || 0;
   const timeMin = parseFloat(qs('#cardio-time').value)    || 0;
-  const bodyWeight = state.profile.weight || 70;
+  const bodyWeight = (state.profile && state.profile.weight) ? state.profile.weight : 65;
 
   if (speed <= 0 || timeMin <= 0) {
     qs('#val-cardio-cal').textContent = '— kcal';
@@ -925,8 +968,16 @@ function updateDashboard() {
   qs('#dash-f-bar').style.width = clamp((t.f / g.f) * 100, 0, 100) + '%';
   qs('#dash-c-bar').style.width = clamp((t.c / g.c) * 100, 0, 100) + '%';
 
-  const w   = state.profile.weight || 70;
-  const h   = state.profile.height || 172;
+  if (!state.profile) {
+    qs('#bal-status-val').textContent = '— kcal';
+    qs('#bal-in-val').textContent     = '0';
+    qs('#bal-out-val').textContent    = '0';
+    qs('#bal-cardio-val').textContent = '0';
+    return;
+  }
+
+  const w   = state.profile.weight || 65;
+  const h   = state.profile.height || 170;
   const a   = state.profile.age    || 28;
   const gen = state.profile.gender || 'male';
   const act = state.profile.activity || 'moderate';
@@ -1057,12 +1108,13 @@ function renderPfcChart() {
 
 // ─── Settings ────────────────────────────────────────────────
 function loadSettingsToForm() {
-  qs('#prf-weight').value=state.profile.weight||70;
-  qs('#prf-height').value=state.profile.height||172;
-  qs('#prf-age').value=state.profile.age||28;
-  qs('#prf-gender').value=state.profile.gender||'male';
-  qs('#prf-activity').value=state.profile.activity||'moderate';
-  qs('#prf-goal').value=state.profile.goal||'maintenance';
+  const p = state.profile || {};
+  qs('#prf-weight').value=p.weight||'';
+  qs('#prf-height').value=p.height||'';
+  qs('#prf-age').value=p.age||'';
+  qs('#prf-gender').value=p.gender||'male';
+  qs('#prf-activity').value=p.activity||'moderate';
+  qs('#prf-goal').value=p.goal||'maintenance';
   qs('#goal-cal').value=state.goals.cal;
   qs('#goal-p').value=state.goals.p;
   qs('#goal-f').value=state.goals.f;
@@ -1070,7 +1122,7 @@ function loadSettingsToForm() {
 }
 
 function calcTDEE() {
-  const w=parseFloat(qs('#prf-weight').value)||70, h=parseFloat(qs('#prf-height').value)||172;
+  const w=parseFloat(qs('#prf-weight').value)||65, h=parseFloat(qs('#prf-height').value)||170;
   const a=parseInt(qs('#prf-age').value)||28, g=qs('#prf-gender').value;
   const act=qs('#prf-activity').value, goal=qs('#prf-goal').value;
   const bmr=g==='male'?10*w+6.25*h-5*a+5:10*w+6.25*h-5*a-161;
@@ -1096,7 +1148,7 @@ function importJSON(file) {
       const d=JSON.parse(e.target.result);
       if (d.workouts) state.workouts=d.workouts; if (d.meals) state.meals=d.meals;
       if (d.inbody) state.inbody=d.inbody; if (d.goals) Object.assign(state.goals,d.goals);
-      if (d.profile) Object.assign(state.profile,d.profile); if (d.customEx) state.customEx=d.customEx;
+      if (d.profile) state.profile=d.profile; if (d.customEx) state.customEx=d.customEx;
       saveAll(); refreshAll(); toast('バックアップから復元しました','success');
     } catch { toast('JSONファイルが無効です','error'); }
   };
@@ -1117,7 +1169,9 @@ function bindEvents() {
   qsa('.nav-to').forEach(el=>el.addEventListener('click',()=>switchTab(el.dataset.target)));
 
   qsa('.modal-close').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.modal)));
-  qsa('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
+  qsa('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o && o.id !== 'modal-first-setup') o.classList.remove('open'); }));
+
+  qs('#first-setup-form').addEventListener('submit', handleFirstSetupSubmit);
 
   qs('#settings-open-btn').addEventListener('click',()=>{ loadSettingsToForm(); openModal('modal-settings'); });
   qsa('.settings-tab-btn').forEach(btn=>btn.addEventListener('click',()=>{
@@ -1127,20 +1181,21 @@ function bindEvents() {
   }));
   qs('#calc-tdee-btn').addEventListener('click',calcTDEE);
   qs('#save-goals-btn').addEventListener('click',()=>{
-    state.profile.weight=parseFloat(qs('#prf-weight').value)||70;
-    state.profile.height=parseFloat(qs('#prf-height').value)||172;
+    if (!state.profile) state.profile = {};
+    state.profile.weight=parseFloat(qs('#prf-weight').value)||65;
+    state.profile.height=parseFloat(qs('#prf-height').value)||170;
     state.profile.age=parseInt(qs('#prf-age').value)||28;
     state.profile.gender=qs('#prf-gender').value; state.profile.activity=qs('#prf-activity').value; state.profile.goal=qs('#prf-goal').value;
-    state.goals.cal=parseFloat(qs('#goal-cal').value)||2400; state.goals.p=parseFloat(qs('#goal-p').value)||140;
-    state.goals.f=parseFloat(qs('#goal-f').value)||60; state.goals.c=parseFloat(qs('#goal-c').value)||265;
+    state.goals.cal=parseFloat(qs('#goal-cal').value)||2000; state.goals.p=parseFloat(qs('#goal-p').value)||130;
+    state.goals.f=parseFloat(qs('#goal-f').value)||50; state.goals.c=parseFloat(qs('#goal-c').value)||250;
     saveAll(); updateDashboard(); updateMealProgress(); toast('目標を保存しました','success'); closeModal('modal-settings');
   });
   qs('#export-btn').addEventListener('click',exportJSON);
   qs('#import-input').addEventListener('change',e=>{ importJSON(e.target.files[0]); e.target.value=''; });
   qs('#clear-all-btn').addEventListener('click',()=>{
     if (!confirm('全データを削除しますか？\nこの操作は元に戻せません。')) return;
-    state.workouts=[]; state.meals=[]; state.inbody=[];
-    saveAll(); refreshAll(); toast('全データを削除しました','warning'); closeModal('modal-settings');
+    state.workouts=[]; state.meals=[]; state.inbody=[]; state.profile=null;
+    saveAll(); refreshAll(); toast('全データを削除しました','warning'); closeModal('modal-settings'); checkFirstTimeSetup();
   });
 
   qs('#cal-prev').addEventListener('click', () => {
@@ -1324,6 +1379,7 @@ function init() {
   renderInBodyHistory();
   updateInBodyLatest();
   bindEvents();
+  checkFirstTimeSetup();
 }
 
 document.addEventListener('DOMContentLoaded', init);
