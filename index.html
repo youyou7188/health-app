@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     :root {
@@ -206,24 +206,26 @@
     /* TIMER */
     .timer-card {
       background:var(--bg-card); border:1px solid var(--border);
-      border-radius:var(--r-lg); padding:12px; margin-bottom:12px; transition:border-color 0.3s;
+      border-radius:var(--r-lg); padding:16px; margin-bottom:14px; transition:border-color 0.3s;
     }
-    .timer-card.running { border-color:rgba(56,189,248,0.4); box-shadow:0 0 20px rgba(56,189,248,0.08); }
-    .timer-layout { display:grid; grid-template-columns:76px 1fr; gap:12px; align-items:center; }
-    .timer-ring-wrap { position:relative; width:76px; height:76px; }
+    .timer-card.running { border-color:rgba(56,189,248,0.5); box-shadow:0 0 24px rgba(56,189,248,0.12); }
+    .timer-layout { display:grid; grid-template-columns:84px 1fr; gap:16px; align-items:center; }
+    .timer-ring-wrap { position:relative; width:84px; height:84px; }
     .timer-ring-wrap svg { transform:rotate(-90deg); }
     .timer-display {
       position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-      font-size:1.05rem; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
+      font-size:1.2rem; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
     }
-    .timer-presets { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin-bottom:7px; }
+    .timer-presets { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:10px; }
     .timer-preset-btn {
-      padding:5px 4px; font-size:0.7rem; font-weight:700; border-radius:var(--r-sm);
-      background:rgba(255,255,255,0.05); border:1px solid var(--border);
+      padding:9px 4px; font-size:0.82rem; font-weight:800; border-radius:var(--r-md);
+      background:rgba(255,255,255,0.06); border:1px solid var(--border);
       color:var(--text-2); cursor:pointer; font-family:var(--font); transition:all 0.2s; text-align:center;
+      min-height:38px; display:flex; align-items:center; justify-content:center;
     }
-    .timer-preset-btn:hover { background:rgba(56,189,248,0.12); color:var(--cyan); border-color:rgba(56,189,248,0.3); }
-    .timer-actions { display:flex; gap:6px; }
+    .timer-preset-btn:hover { background:rgba(56,189,248,0.15); color:var(--cyan); border-color:rgba(56,189,248,0.4); }
+    .timer-preset-btn.active { background:rgba(56,189,248,0.2); color:var(--cyan); border-color:var(--cyan); box-shadow:0 0 10px rgba(56,189,248,0.25); }
+    .timer-actions { display:flex; gap:8px; align-items:center; }
 
     /* EQUIPMENT TABS */
     .equip-tabs { display:flex; gap:5px; overflow-x:auto; padding-bottom:6px; margin-bottom:10px; scrollbar-width:none; }
@@ -612,6 +614,21 @@
         <div class="macro-pill-sub">目標 <span id="dash-c-tgt">250g</span></div>
       </div>
     </div>
+    <!-- WEEKLY PFC SUMMARY CARD (機能4) -->
+    <div class="card" id="weekly-pfc-card" style="margin-top:10px;">
+      <div class="card-header" style="margin-bottom:6px;">
+        <div class="card-title">
+          <i data-lucide="bar-chart-2" style="width:15px;height:15px;color:var(--cyan);"></i>
+          直近7日間の週平均 PFC
+        </div>
+        <span class="chip chip-cyan" id="weekly-pfc-days-chip">0日分</span>
+      </div>
+      <div class="macro-grid-3" id="weekly-pfc-content">
+        <div class="macro-pill"><div class="macro-pill-label" style="color:var(--orange);">平均 カロリー</div><div class="macro-pill-value" id="weekly-cal-val" style="color:var(--orange);">—</div><div class="macro-pill-sub">kcal/日</div></div>
+        <div class="macro-pill"><div class="macro-pill-label" style="color:var(--green);">平均 P</div><div class="macro-pill-value" id="weekly-p-val" style="color:var(--green);">—</div><div class="macro-pill-sub">g/日</div></div>
+        <div class="macro-pill"><div class="macro-pill-label" style="color:var(--cyan);">平均 C</div><div class="macro-pill-value" id="weekly-c-val" style="color:var(--cyan);">—</div><div class="macro-pill-sub">g/日</div></div>
+      </div>
+    </div>
   </div>
 
   <div class="quick-grid">
@@ -643,14 +660,14 @@
         インターバルタイマー
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
-        <button id="timer-sound-btn" class="btn btn-ghost btn-icon" style="width:27px;height:27px;" title="サウンド切替">
-          <i data-lucide="volume-2" id="timer-sound-icon" style="width:13px;height:13px;color:var(--cyan);"></i>
+        <button id="timer-sound-btn" class="btn btn-ghost btn-icon" style="width:36px;height:36px;" title="サウンド切替">
+          <i data-lucide="volume-2" id="timer-sound-icon" style="width:16px;height:16px;color:var(--cyan);"></i>
         </button>
       </div>
     </div>
     <div class="timer-layout">
       <div class="timer-ring-wrap">
-        <svg width="76" height="76" viewBox="0 0 76 76">
+        <svg width="84" height="84" viewBox="0 0 76 76">
           <circle cx="38" cy="38" r="32" stroke="rgba(255,255,255,0.07)" stroke-width="6" fill="none"/>
           <circle id="timer-ring" cx="38" cy="38" r="32" stroke="var(--cyan)" stroke-width="6" fill="none"
             stroke-dasharray="201.1" stroke-dashoffset="0" stroke-linecap="round"
@@ -661,17 +678,17 @@
       <div>
         <div class="timer-presets">
           <button class="timer-preset-btn" data-sec="30">30s</button>
-          <button class="timer-preset-btn" data-sec="60">60s</button>
+          <button class="timer-preset-btn active" data-sec="60">60s</button>
           <button class="timer-preset-btn" data-sec="90">90s</button>
           <button class="timer-preset-btn" data-sec="120">2m</button>
         </div>
         <div class="timer-actions">
-          <button id="timer-toggle-btn" class="btn btn-cyan btn-sm" style="flex:1;">
-            <i data-lucide="play" id="timer-play-icon" style="width:12px;height:12px;"></i>
+          <button id="timer-toggle-btn" class="btn btn-cyan btn-md" style="flex:1;padding:10px 14px;font-size:0.92rem;min-height:40px;">
+            <i data-lucide="play" id="timer-play-icon" style="width:15px;height:15px;"></i>
             <span id="timer-toggle-label">スタート</span>
           </button>
-          <button id="timer-reset-btn" class="btn btn-ghost btn-icon" style="width:30px;height:30px;">
-            <i data-lucide="rotate-ccw" style="width:13px;height:13px;"></i>
+          <button id="timer-reset-btn" class="btn btn-ghost btn-icon" style="width:40px;height:40px;">
+            <i data-lucide="rotate-ccw" style="width:15px;height:15px;"></i>
           </button>
         </div>
       </div>
@@ -719,8 +736,8 @@
       </div>
 
       <div id="prev-record-alert" class="prev-record hidden">
-        <div class="prev-record-row">
-          <div style="display:flex;align-items:center;gap:6px;">
+        <div class="prev-record-row" style="flex-wrap:wrap;gap:6px;">
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
             <i data-lucide="clock" style="width:13px;height:13px;color:var(--cyan);flex-shrink:0;"></i>
             <span id="prev-record-text"></span>
           </div>
@@ -728,6 +745,7 @@
             <i data-lucide="zap" style="width:11px;height:11px;"></i> 前回値をコピー
           </button>
         </div>
+        <div id="progression-suggest-badge" class="chip chip-purple hidden" style="margin-top:6px;width:100%;justify-content:center;padding:4px 8px;font-size:0.72rem;"></div>
       </div>
 
       <!-- STRENGTH INPUT FIELDS -->
@@ -862,7 +880,7 @@
       </div>
       <span style="font-size:0.7rem;color:var(--text-3);" id="inbody-latest-date">未測定</span>
     </div>
-    <div class="body-stat-grid">
+    <div class="body-stat-grid" style="grid-template-columns: repeat(4, 1fr);">
       <div class="body-stat">
         <div class="body-stat-label">体重</div>
         <div class="body-stat-val" id="val-inbody-weight" style="color:var(--cyan);">—</div>
@@ -876,6 +894,11 @@
       <div class="body-stat">
         <div class="body-stat-label">骨格筋量</div>
         <div class="body-stat-val" id="val-inbody-muscle" style="color:var(--purple);">—</div>
+        <div class="body-stat-unit">kg</div>
+      </div>
+      <div class="body-stat">
+        <div class="body-stat-label">LBM(除脂肪)</div>
+        <div class="body-stat-val" id="val-inbody-lbm" style="color:var(--amber);">—</div>
         <div class="body-stat-unit">kg</div>
       </div>
     </div>
@@ -914,6 +937,20 @@
       体組成データを入力する
     </button>
   </div>
+  <!-- TARGET FAT PREDICTION CARD (機能5) -->
+  <div class="card" id="target-fat-prediction-card" style="margin-bottom:12px;">
+    <div class="card-header" style="margin-bottom:6px;">
+      <div class="card-title">
+        <i data-lucide="target" style="width:15px;height:15px;color:var(--green);"></i>
+        目標体脂肪率への到達予測
+      </div>
+      <span class="chip chip-green" id="target-fat-status-chip">蓄積中</span>
+    </div>
+    <div id="target-fat-pred-body" style="font-size:0.8rem;color:var(--text-2);line-height:1.5;">
+      データ蓄積中...
+    </div>
+  </div>
+
   <div class="card">
     <div class="section-title">測定履歴</div>
     <div id="inbody-history-list"></div>
@@ -970,6 +1007,7 @@
         </div>
         種目別推移
       </div>
+      <span id="plateau-alert-badge" class="chip chip-rose hidden" style="font-size:0.72rem;padding:3px 8px;">⚠️ プラトー(停滞)検知中</span>
       <select id="analytics-ex-select" class="form-select" style="width:auto;padding:4px 8px;font-size:0.75rem;border-radius:var(--r-sm);"></select>
     </div>
     <div class="chart-wrap"><canvas id="chart-workout"></canvas></div>

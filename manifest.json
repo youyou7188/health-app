@@ -1,0 +1,18 @@
+{
+  "name": "FitPulse AI トレーニング & PFC",
+  "short_name": "FitPulse",
+  "description": "Gemini AI搭載・Google Drive連携 総合フィットネス＆PFC管理アプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

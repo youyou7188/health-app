@@ -26,7 +26,11 @@ const LS = {
   CUSTOM_FOODS: 'fp_custom_foods'
 };
 
-// ─── FOOD DATABASE ───────────────────────────────────────────
+// ─── FOOD DATABASE 選定方針 ───────────────────────────
+// 原則: 素材ベース。店・商品でカロリーが大きくブレる外食メニュー
+// (ラーメン、カレーライス等)は対象外。
+// 例外: 開発者が実測用途で個別追加する特定商品(例: ベースブレッド)。
+// ──────────────────────────────────────────────
 // [商品名, 100gカロリー, 100gP, 100gF, 100gC, [[単位名, グラム数]], [検索用タグ/別名]]
 const FOOD_DB_RAW = [
   // 🍞 ベースブレッド全種
@@ -62,7 +66,7 @@ const FOOD_DB_RAW = [
   ['茶碗蒸し',60,4.8,3.2,3.0,[['1個(130g)',130]],['ちゃわんむし','茶碗蒸し','卵料理']],
   ['玉子焼き（出汁巻き卵）',145,9.2,9.5,4.8,[['2切れ(80g)',80],['1本(200g)',200]],['たまごやき','卵焼き','だしまき','出汁巻き','卵']],
   ['温泉卵',151,12.3,10.3,0.3,[['1個(50g)',50]],['おんせんたまご','温玉','温泉卵','卵']],
-  ['かぼちゃの煮物',110,1.8,0.5,25.0,[['2個/小鉢(100g)',100]],['かぼちゃ','カBOチャ','カボチャ','煮物']],
+  ['かぼちゃの煮物',110,1.8,0.5,25.0,[['2個/小鉢(100g)',100]],['かぼちゃ','カボチャ','煮物']],
   ['なすの揚げ浸し',95,1.2,6.8,7.5,[['1本分(100g)',100]],['なす','ナス','茄子','惣菜']],
   ['ほうれん草のお浸し',25,2.8,0.4,3.2,[['小鉢(80g)',80]],['ほうれん草','おひたし','和食']],
   ['いんげんのごま和え',75,3.0,3.5,8.5,[['小鉢(60g)',60]],['いんげん','ごま和え']],
@@ -112,6 +116,12 @@ const FOOD_DB_RAW = [
   ['絹豆腐',56,5.3,3.5,2.0,[['1丁(300g)',300],['1パック(150g)',150]],['豆腐','とうふ','大豆']],
   ['厚揚げ',150,10.7,11.3,0.9,[['1枚(150g)',150]],['豆腐','とうふ','大豆']],
   ['枝豆（茹で/皮なし）',134,11.7,6.2,8.9,[['小鉢(70g)',70]],['大豆','えだまめ']],
+
+  // 🧀 チーズ類 (素材ベース)
+  ['プロセスチーズ',313,22.7,26.0,1.3,[['1枚(18g)',18],['6P1個(18g)',18]],['チーズ','乳製品','タンパク質']],
+  ['カッテージチーズ',105,13.3,4.5,1.9,[['100g',100],['小鉢(50g)',50]],['チーズ','乳製品','低脂質','高タンパク']],
+  ['モッツァレラチーズ',250,18.4,19.9,4.1,[['1個(100g)',100],['1/2個(50g)',50]],['チーズ','乳製品']],
+  ['粉チーズ（パルメザン）',445,44.0,30.8,3.9,[['大さじ1(6g)',6],['小さじ1(2g)',2]],['チーズ','調味料','パルメザン']],
 
   // 🥑 油脂類・調味料（「油」「あぶら」で全ヒット）
   ['オリーブオイル',921,0,100,0,[['大さじ1(12g)',12],['小さじ1(4g)',4]],['油','あぶら','オイル','調味料']],
@@ -234,6 +244,10 @@ const FOOD_DB_RAW = [
   ['ハイボール（350ml）',48,0,0,0.1,[['1缶(350ml)',350]],['酒','おさけ','アルコール','ウイスキー']],
   ['こだわり酒場のレモンサワー',42,0,0,1.2,[['1缶(350ml)',350]],['酒','おさけ','アルコール','サワー']],
   ['ビール（淡麗/一番搾り等）',42,0.4,0,3.1,[['350ml缶',350]],['酒','おさけ','アルコール','ビール']],
+  ['日本酒（清酒）',103,0.4,0,4.5,[['1合(180ml)',180]],['酒','おさけ','アルコール','日本酒','清酒']],
+  ['焼酎（ロック/水割り）',140,0,0,0,[['ロック1杯(60ml)',60],['水割り1杯(150ml)',150]],['酒','おさけ','アルコール','焼酎']],
+  ['缶チューハイ（定番フレーバー）',50,0,0,3.0,[['1缶(350ml)',350],['1缶(500ml)',500]],['酒','おさけ','アルコール','チューハイ','サワー']],
+  ['ワイン（赤/白）',73,0.2,0,1.5,[['グラス1杯(125ml)',125]],['酒','おさけ','アルコール','ワイン']],
   ['煎茶 / 緑茶 / ほうじ茶',1,0.1,0,0.2,[['1杯(150ml)',150],['500mlペット',500]],['お茶','緑茶','ほうじ茶','麦茶','ドリンク']],
   ['ブラックコーヒー（無糖）',4,0.2,0,0.7,[['1杯(200ml)',200]],['コーヒー','飲み物']],
 
@@ -242,7 +256,17 @@ const FOOD_DB_RAW = [
   ['りんご',61,0.2,0.2,16.2,[['1個(250g)',250],['1/2個(125g)',125]],['くだもの','フルーツ']],
   ['キウイフルーツ',56,1.0,0.1,13.5,[['1個(80g)',80]],['くだもの','フルーツ']],
   ['みかん',45,0.7,0.1,11.5,[['1個(80g)',80]],['くだもの','フルーツ']],
-  ['冷凍ブルーベリー',49,0.5,0.1,12.9,[['1カップ(100g)',100]],['くだもの','フルーツ']]
+  ['冷凍ブルーベリー',49,0.5,0.1,12.9,[['1カップ(100g)',100]],['くだもの','フルーツ']],
+  ['ぶどう（生）',59,0.4,0.2,15.7,[['10粒(80g)',80],['1房(300g)',300]],['くだもの','フルーツ','ぶどう','グレープ']],
+  ['桃（もも/生）',40,0.6,0.1,10.2,[['1個(200g)',200]],['くだもの','フルーツ','もも','モモ','ピーチ']],
+  ['柿（かき/生）',60,0.4,0.2,15.9,[['1個(150g)',150]],['くだもの','フルーツ','かき','カキ']],
+  ['梨（なし/生）',38,0.3,0.1,10.4,[['1個(250g)',250]],['くだもの','フルーツ','なし','ナシ']],
+  ['すいか（生）',37,0.6,0.1,9.2,[['1カット(200g)',200]],['くだもの','フルーツ','すいか','スイカ']],
+  ['パイナップル（生）',53,0.6,0.1,13.7,[['1カップ(100g)',100]],['くだもの','フルーツ','パイナップル','パイン']],
+  ['いちご（生）',34,0.9,0.1,8.5,[['5粒(80g)',80],['1パック(250g)',250]],['くだもの','フルーツ','いちご','イチゴ','ストロベリー']],
+  ['オレンジ（生）',46,1.0,0.1,11.8,[['1個(130g)',130]],['くだもの','フルーツ','オレンジ']],
+  ['洋梨（ラ・フランス）',48,0.3,0.1,12.5,[['1個(200g)',200]],['くだもの','フルーツ','洋梨','ラフランス']],
+  ['グレープフルーツ（生）',38,0.9,0.1,9.6,[['1/2個(150g)',150],['1個(300g)',300]],['くだもの','フルーツ','グレープフルーツ']]
 ];
 
 const FOOD_DB = FOOD_DB_RAW.map(([name,cal,p,f,c,units,tags]) => ({
@@ -306,6 +330,9 @@ const EX_DB = {
 };
 
 // ─── App State ──────────────────────────────────────────────
+const CURRENT_SCHEMA_VERSION = 2;
+const SCHEMA_KEY = 'fp_schema_version';
+
 const state = {
   workouts : [],
   meals    : [],
@@ -331,10 +358,31 @@ let timerInterval = null, timerTotal = 60, timerRemaining = 60, timerRunning = f
 let chartBody = null, chartWorkout = null, chartPfc = null;
 let currentTab = 'dashboard';
 
-// ─── DOM Helpers ─────────────────────────────────────────────
+// ─── Helpers & Utilities ─────────────────────────────────────
 const qs  = sel => document.querySelector(sel);
 const qsa = sel => [...document.querySelectorAll(sel)];
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+const escapeHTML = str => {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, m => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[m]));
+};
+
+const generateId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+};
+
+const parseValidNumber = (val, defaultVal = 0, min = -Infinity, max = Infinity) => {
+  const num = parseFloat(val);
+  if (isNaN(num)) return defaultVal;
+  return clamp(num, min, max);
+};
+
 const todayKey = () => {
   const d = new Date();
   const year = d.getFullYear();
@@ -342,6 +390,210 @@ const todayKey = () => {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
+// ─── Extended Features (v3) Independent Functions ──────────────
+
+// 機能1: 除脂肪体重 (LBM) 算出関数 (fat > 0 ガード付き)
+function calcLBM(weight, fatPercent) {
+  const w = parseValidNumber(weight, 0, 0, 500);
+  const f = parseValidNumber(fatPercent, 0, 0, 100);
+  if (w <= 0 || f <= 0 || f >= 100) return null;
+  return w * (1 - (f / 100)); // 公式受領後に切り替え可能なプレースホルダー計算
+}
+
+// 機能4: 週平均PFCトレンド集計関数 (直近7日間のローリング集計)
+function calcWeeklyPFCAverage(meals) {
+  if (!Array.isArray(meals) || meals.length === 0) {
+    return { avgCal: 0, avgP: 0, avgF: 0, avgC: 0, daysCount: 0 };
+  }
+  const today = new Date();
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(today.getDate() - 6);
+  const startDateStr = `${sevenDaysAgo.getFullYear()}-${String(sevenDaysAgo.getMonth()+1).padStart(2,'0')}-${String(sevenDaysAgo.getDate()).padStart(2,'0')}`;
+
+  const recentMeals = meals.filter(m => m.date >= startDateStr);
+  const daysMap = new Map();
+  recentMeals.forEach(m => {
+    if (!daysMap.has(m.date)) daysMap.set(m.date, { cal: 0, p: 0, f: 0, c: 0 });
+    const day = daysMap.get(m.date);
+    day.cal += m.cal || 0;
+    day.p   += m.p   || 0;
+    day.f   += m.f   || 0;
+    day.c   += m.c   || 0;
+  });
+
+  const daysCount = daysMap.size || 0;
+  if (daysCount === 0) return { avgCal: 0, avgP: 0, avgF: 0, avgC: 0, daysCount: 0 };
+
+  let totalCal = 0, totalP = 0, totalF = 0, totalC = 0;
+  daysMap.forEach(day => {
+    totalCal += day.cal; totalP += day.p; totalF += day.f; totalC += day.c;
+  });
+
+  return {
+    avgCal: Math.round(totalCal / daysCount),
+    avgP: parseFloat((totalP / daysCount).toFixed(1)),
+    avgF: parseFloat((totalF / daysCount).toFixed(1)),
+    avgC: parseFloat((totalC / daysCount).toFixed(1)),
+    daysCount
+  };
+}
+
+function updateWeeklyPfcSummary() {
+  const summary = calcWeeklyPFCAverage(state.meals);
+  const daysChip = qs('#weekly-pfc-days-chip');
+  if (daysChip) daysChip.textContent = `${summary.daysCount}日分`;
+
+  qs('#weekly-cal-val').textContent = summary.daysCount > 0 ? `${summary.avgCal}` : '—';
+  qs('#weekly-p-val').textContent   = summary.daysCount > 0 ? `${summary.avgP}g` : '—';
+  qs('#weekly-c-val').textContent   = summary.daysCount > 0 ? `${summary.avgC}g` : '—';
+}
+
+function showPrevRecord() {
+  const selectedEx = qs('#exercise-select').value;
+  const prev = state.workouts.filter(w => w.exercise === selectedEx).sort((a,b) => b.date.localeCompare(a.date))[0];
+  const alert = qs('#prev-record-alert');
+  const suggestBadge = qs('#progression-suggest-badge');
+  state.currentPrevWorkout = prev || null;
+
+  if (prev) {
+    if (prev.isCardio) {
+      qs('#prev-record-text').textContent = `前回 (${escapeHTML(prev.date)}) — 傾斜${prev.incline}% · 速度${prev.speed}km/h · ${prev.time}分`;
+      if (suggestBadge) suggestBadge.classList.add('hidden');
+    } else {
+      const wDisp = (prev.weight > 0) ? `${prev.weight}kg` : (prev.equip === '自重' ? '自重' : '0kg');
+      qs('#prev-record-text').textContent = `前回 (${escapeHTML(prev.date)}) — ${wDisp} × ${prev.reps}r × ${prev.sets}s`;
+      
+      const suggest = suggestProgression(prev);
+      if (suggest && suggestBadge) {
+        suggestBadge.textContent = escapeHTML(suggest.message);
+        suggestBadge.classList.remove('hidden');
+      } else if (suggestBadge) {
+        suggestBadge.classList.add('hidden');
+      }
+    }
+    alert.classList.remove('hidden');
+  } else {
+    alert.classList.add('hidden');
+    if (suggestBadge) suggestBadge.classList.add('hidden');
+  }
+  updateRmDisplay();
+  updateCardioCalorie();
+}
+
+// 機能2: プログレッシブオーバーロード提案関数
+function suggestProgression(prevRecord) {
+  if (!prevRecord || prevRecord.isCardio) return null;
+  const reps = parseValidNumber(prevRecord.reps, 0, 0, 100);
+  const weight = parseValidNumber(prevRecord.weight, 0, 0, 1000);
+
+  if (reps < 12) {
+    return {
+      type: 'reps',
+      value: reps + 1,
+      message: `⚡ 次回目標: ${reps + 1} reps に挑戦！`
+    };
+  }
+  const nextWeight = weight > 0 ? weight + 2.5 : 2.5;
+  return {
+    type: 'weight',
+    value: nextWeight,
+    message: `🔥 12repsクリア！次回目標: ${nextWeight}kg に挑戦！`
+  };
+}
+
+// 機能3: プラトー (停滞) 検知関数
+// 加重種目: 推定1RM (oneRM) で比較
+// 自重種目 (oneRM が常に null): reps で比較 → 単位が混在しない
+function detectPlateau(exerciseHistory) {
+  if (!Array.isArray(exerciseHistory)) return false;
+  const strengthRecords = exerciseHistory
+    .filter(w => !w.isCardio)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (strengthRecords.length < 3) return false;
+
+  const recent3 = strengthRecords.slice(-3);
+
+  // 直近3件すべてに oneRM があれば「加重種目」と判定
+  const allHaveOneRM = recent3.every(w => w.oneRM && w.oneRM > 0);
+
+  let metrics;
+  if (allHaveOneRM) {
+    // 加重種目: 推定1RM (kg) で比較
+    metrics = recent3.map(w => w.oneRM);
+  } else {
+    // 自重種目: reps 数で比較 (oneRM = weight=0 では算出不可)
+    metrics = recent3.map(w => parseValidNumber(w.reps, 0, 0, 999));
+  }
+
+  return (metrics[2] - metrics[0] <= 0.5) && (metrics[2] - metrics[1] <= 0.5);
+}
+
+// 機能5: 目標体脂肪率到達予測関数
+function predictTargetDate(inbodyHistory, targetFatPercent) {
+  if (!Array.isArray(inbodyHistory) || inbodyHistory.length < 2) {
+    return { status: 'insufficient_data', message: '予測には2件以上の測定データが必要です' };
+  }
+  const tgtFat = parseValidNumber(targetFatPercent, 0, 1, 50);
+  if (tgtFat <= 0) {
+    return { status: 'no_target', message: '目標設定画面で目標体脂肪率を設定してください' };
+  }
+
+  const sorted = [...inbodyHistory].sort((a,b) => a.date.localeCompare(b.date));
+  const oldest = sorted[0];
+  const latest = sorted[sorted.length - 1];
+
+  if (latest.fat <= tgtFat) {
+    return { status: 'achieved', message: `🎉 既に目標体脂肪率 ${tgtFat}% を達成しています！` };
+  }
+
+  const d1 = new Date(oldest.date);
+  const d2 = new Date(latest.date);
+  const daysDiff = (d2 - d1) / 86400000;
+  const weeks = daysDiff / 7;
+
+  if (weeks < 0.5) {
+    return { status: 'insufficient_data', message: '予測には1週間以上の測定期間が必要です' };
+  }
+
+  const fatDiff = latest.fat - oldest.fat;
+
+  if (fatDiff >= 0) {
+    return { status: 'stagnant_or_gaining', message: '体脂肪率が横ばいまたは増加傾向です。運動・食事目標を見直しましょう。' };
+  }
+
+  const fatLossPerWeek = Math.abs(fatDiff) / weeks;
+  const fatLeft = latest.fat - tgtFat;
+  const estimatedWeeks = Math.ceil(fatLeft / fatLossPerWeek);
+
+  const targetDate = new Date();
+  targetDate.setDate(targetDate.getDate() + (estimatedWeeks * 7));
+  const targetDateStr = `${targetDate.getFullYear()}年${targetDate.getMonth()+1}月${targetDate.getDate()}日`;
+
+  return {
+    status: 'ok',
+    estimatedWeeks,
+    targetDateStr,
+    message: `現在のペース（週 -${fatLossPerWeek.toFixed(2)}%）で、約 ${estimatedWeeks} 週間後（${targetDateStr}頃）に達成予測！`
+  };
+}
+
+// 食材タグ・キーワードの高速検索用 Index Map
+const FOOD_INDEX = new Map();
+
+function buildFoodIndex() {
+  FOOD_INDEX.clear();
+  FOOD_DB.forEach(food => {
+    const tokens = new Set([
+      food.name.toLowerCase(),
+      ...(food.tags || []).map(t => t.toLowerCase())
+    ]);
+    tokens.forEach(token => {
+      if (!FOOD_INDEX.has(token)) FOOD_INDEX.set(token, []);
+      FOOD_INDEX.get(token).push(food);
+    });
+  });
+}
 
 // ─── Toast ──────────────────────────────────────────────────
 function toast(msg, type = 'info', dur = 3000) {
@@ -368,18 +620,41 @@ function saveAll() {
   }
 }
 
+function migrateSchema() {
+  const currentVer = parseInt(localStorage.getItem(SCHEMA_KEY) || '1');
+  if (currentVer < CURRENT_SCHEMA_VERSION) {
+    if (Array.isArray(state.workouts)) {
+      state.workouts.forEach(w => {
+        if (typeof w.weight === 'undefined') w.weight = 0;
+      });
+    }
+    localStorage.setItem(SCHEMA_KEY, String(CURRENT_SCHEMA_VERSION));
+  }
+}
+
 function loadAll() {
   const p = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
-  state.workouts   = p(LS.WORKOUTS)     || [];
-  state.meals      = p(LS.MEALS)        || [];
-  state.inbody     = p(LS.INBODY)       || [];
-  state.customEx   = p(LS.CUSTOM_EX)    || {};
-  state.customFoods= p(LS.CUSTOM_FOODS) || [];
+  const loadedWorkouts = p(LS.WORKOUTS);
+  const loadedMeals = p(LS.MEALS);
+  const loadedInbody = p(LS.INBODY);
+  const loadedCustomEx = p(LS.CUSTOM_EX);
+  const loadedCustomFoods = p(LS.CUSTOM_FOODS);
+
+  state.workouts    = Array.isArray(loadedWorkouts)   ? loadedWorkouts   : [];
+  state.meals       = Array.isArray(loadedMeals)      ? loadedMeals      : [];
+  state.inbody      = Array.isArray(loadedInbody)     ? loadedInbody     : [];
+  state.customEx    = (loadedCustomEx && typeof loadedCustomEx === 'object') ? loadedCustomEx : {};
+  state.customFoods = Array.isArray(loadedCustomFoods)? loadedCustomFoods: [];
+
   const prof = p(LS.PROFILE);
-  if (prof) {
-    if (prof.goals) { Object.assign(state.goals, prof.goals); delete prof.goals; }
+  if (prof && typeof prof === 'object') {
+    if (prof.goals && typeof prof.goals === 'object') {
+      Object.assign(state.goals, prof.goals);
+      delete prof.goals;
+    }
     state.profile = prof;
   }
+  migrateSchema();
 }
 
 // ─── First Time Setup Check ─────────────────────────────────
@@ -459,7 +734,7 @@ function renderCustomFoodList() {
   list.innerHTML = state.customFoods.map(cf => `
     <div class="log-item">
       <div style="flex:1;min-width:0;">
-        <div class="log-item-title">🍳 ${cf.name}</div>
+        <div class="log-item-title">🍳 ${escapeHTML(cf.name)}</div>
         <div class="log-item-stats">
           <span class="chip chip-orange">${cf.cal}kcal</span>
           <span class="chip chip-green">P${cf.p}g</span>
@@ -500,7 +775,14 @@ function switchTab(tabId) {
 
 // ─── Timer ──────────────────────────────────────────────────
 const TIMER_CIRC = 201.1;
-function timerSetTotal(sec) { timerTotal=sec; timerRemaining=sec; if(timerRunning)stopTimer(); renderTimer(); }
+function timerSetTotal(sec) {
+  timerTotal=sec; timerRemaining=sec;
+  if(timerRunning)stopTimer();
+  qsa('.timer-preset-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.sec) === sec);
+  });
+  renderTimer();
+}
 function startTimer() {
   if (timerRemaining<=0) timerRemaining=timerTotal;
   timerRunning=true;
@@ -652,9 +934,9 @@ function updateRmDisplay() {
 
 function updateCardioCalorie() {
   if (state.selectedEquip !== '有酸素') return;
-  const incline = parseFloat(qs('#cardio-incline').value) || 0;
-  const speed   = parseFloat(qs('#cardio-speed').value)   || 0;
-  const timeMin = parseFloat(qs('#cardio-time').value)    || 0;
+  const incline = parseValidNumber(qs('#cardio-incline').value, 0, 0, 40);
+  const speed   = parseValidNumber(qs('#cardio-speed').value, 0, 0, 50);
+  const timeMin = parseValidNumber(qs('#cardio-time').value, 0, 0, 1440);
   const bodyWeight = (state.profile && state.profile.weight) ? state.profile.weight : 65;
 
   if (speed <= 0 || timeMin <= 0) {
@@ -664,9 +946,17 @@ function updateCardioCalorie() {
 
   const speedMpm = (speed * 1000) / 60;
   const inclineFrac = incline / 100;
-  let mets = 3.5 + (0.1 * speedMpm) + (1.8 * speedMpm * inclineFrac);
-  mets = Math.max(2.5, Math.min(20, mets / 3.5));
+  let mets = 3.5;
 
+  if (speed < 6.0) {
+    // ACSM 歩行公式 (speed < 6.0 km/h)
+    mets = 3.5 + (0.1 * speedMpm) + (1.8 * speedMpm * inclineFrac);
+  } else {
+    // ACSM 走行公式 (speed >= 6.0 km/h)
+    mets = 3.5 + (0.2 * speedMpm) + (0.9 * speedMpm * inclineFrac);
+  }
+
+  mets = Math.max(2.5, Math.min(25, mets / 3.5));
   const kcal = (mets * bodyWeight * (timeMin / 60) * 1.05);
   qs('#val-cardio-cal').textContent = `${Math.round(kcal)} kcal`;
 }
@@ -682,19 +972,21 @@ function renderWorkoutHistory() {
   }
 
   list.innerHTML = recent.map(w => {
+    const exEsc = escapeHTML(w.exercise);
+    const notesEsc = escapeHTML(w.notes);
     if (w.isCardio) {
       return `
         <div class="log-item">
           <div style="flex:1;min-width:0;">
-            <div class="log-item-meta">${w.date} · 🏃 有酸素</div>
-            <div class="log-item-title">${w.exercise}</div>
+            <div class="log-item-meta">${escapeHTML(w.date)} · 🏃 有酸素</div>
+            <div class="log-item-title">${exEsc}</div>
             <div class="log-item-stats">
               <span class="chip chip-amber">傾斜 ${w.incline}%</span>
               <span class="chip chip-cyan">速度 ${w.speed}km/h</span>
               <span class="chip chip-green">時間 ${w.time}分</span>
               <span class="chip chip-orange">${w.calories}kcal</span>
             </div>
-            ${w.notes?`<div style="font-size:0.72rem;color:var(--text-3);margin-top:4px;">${w.notes}</div>`:''}
+            ${w.notes?`<div style="font-size:0.72rem;color:var(--text-3);margin-top:4px;">${notesEsc}</div>`:''}
           </div>
           <button class="del-btn" data-id="${w.id}" aria-label="削除">
             <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
@@ -705,15 +997,15 @@ function renderWorkoutHistory() {
     return `
       <div class="log-item">
         <div style="flex:1;min-width:0;">
-          <div class="log-item-meta">${w.date} · ${w.equip||''}</div>
-          <div class="log-item-title">${w.exercise}</div>
+          <div class="log-item-meta">${escapeHTML(w.date)} · ${escapeHTML(w.equip||'')}</div>
+          <div class="log-item-title">${exEsc}</div>
           <div class="log-item-stats">
             <span class="chip chip-cyan">${w.weight > 0 ? w.weight + 'kg' : (w.equip === '自重' ? '自重' : '0kg')}</span>
             <span class="chip chip-green">${w.reps}rep</span>
             <span class="chip chip-amber">${w.sets}set</span>
             ${w.oneRM?`<span class="chip chip-purple">1RM≈${w.oneRM.toFixed(1)}kg</span>`:''}
           </div>
-          ${w.notes?`<div style="font-size:0.72rem;color:var(--text-3);margin-top:4px;">${w.notes}</div>`:''}
+          ${w.notes?`<div style="font-size:0.72rem;color:var(--text-3);margin-top:4px;">${notesEsc}</div>`:''}
         </div>
         <button class="del-btn" data-id="${w.id}" aria-label="削除">
           <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
@@ -736,7 +1028,7 @@ function searchFood(query) {
 
   // マイ料理（🍳 アイコン付き）
   const customHits = state.customFoods.filter(f => f.name.toLowerCase().includes(q)).map(f => ({
-    displayName: `🍳 ${f.name}`,
+    displayName: `🍳 ${escapeHTML(f.name)}`,
     name: f.name,
     cal: f.cal, p: f.p, f: f.f, c: f.c,
     units: [['1食分', 100]],
@@ -744,17 +1036,23 @@ function searchFood(query) {
   }));
 
   // DB食材（名前およびタグマッチ）
-  const dbHits = FOOD_DB.filter(f => {
+  const addedNames = new Set();
+  const dbHits = [];
+
+  FOOD_DB.forEach(f => {
     const nameMatch = f.name.toLowerCase().includes(q);
     const tagMatch  = f.tags && f.tags.some(t => t.toLowerCase().includes(q));
-    return nameMatch || tagMatch;
-  }).map(f => ({
-    displayName: f.name,
-    name: f.name,
-    cal: f.cal, p: f.p, f: f.f, c: f.c,
-    units: f.units,
-    isCustom: false
-  }));
+    if ((nameMatch || tagMatch) && !addedNames.has(f.name)) {
+      addedNames.add(f.name);
+      dbHits.push({
+        displayName: escapeHTML(f.name),
+        name: f.name,
+        cal: f.cal, p: f.p, f: f.f, c: f.c,
+        units: f.units,
+        isCustom: false
+      });
+    }
+  });
 
   return [...customHits, ...dbHits].slice(0, 16);
 }
@@ -762,13 +1060,14 @@ function searchFood(query) {
 function showFoodDropdown(results) {
   const drop = qs('#food-dropdown');
   if (!results.length) {
-    drop.innerHTML=`<div class="food-drop-empty">「${qs('#food-search').value}」が見つかりません</div>`;
+    const qEscaped = escapeHTML(qs('#food-search').value);
+    drop.innerHTML = `<div class="food-drop-empty">「${qEscaped}」が見つかりません</div>`;
     drop.classList.remove('hidden');
     return;
   }
   drop.innerHTML = results.map((f,i)=>`
     <div class="food-drop-item" data-idx="${i}">
-      <div class="food-drop-name">${f.displayName}</div>
+      <div class="food-drop-name">${escapeHTML(f.displayName)}</div>
       <div class="food-drop-meta">${f.cal.toFixed(0)}kcal · P${f.p.toFixed(1)}g · F${f.f.toFixed(1)}g · C${f.c.toFixed(1)}g</div>
     </div>
   `).join('');
@@ -892,7 +1191,7 @@ function renderPendingList() {
     return `
       <div class="pending-item">
         <div class="pending-item-info">
-          <div class="pending-item-name">${item.category ? `[${item.category}] ` : ''}${item.name}</div>
+          <div class="pending-item-name">${item.category ? `[${escapeHTML(item.category)}] ` : ''}${escapeHTML(item.name)}</div>
           <div class="pending-item-macros">${item.cal}kcal · P${item.p}g · F${item.f}g · C${item.c}g</div>
         </div>
         <button type="button" class="del-btn" data-idx="${i}" style="width:24px;height:24px;">
@@ -1005,8 +1304,8 @@ function renderMealHistory() {
           ${catMeals.map(m => `
             <div class="log-item">
               <div style="flex:1;min-width:0;">
-                <div class="log-item-meta">${m.time||''}</div>
-                <div class="log-item-title">${m.name}</div>
+                <div class="log-item-meta">${escapeHTML(m.time||'')}</div>
+                <div class="log-item-title">${escapeHTML(m.name)}</div>
                 <div class="log-item-stats">
                   <span class="chip chip-orange">${Math.round(m.cal)}kcal</span>
                   <span class="chip chip-green">P${m.p.toFixed(1)}g</span>
@@ -1044,13 +1343,13 @@ function renderInBodyHistory() {
   list.innerHTML = hist.map(d=>`
     <div class="log-item">
       <div style="flex:1;min-width:0;">
-        <div class="log-item-meta">${d.date}</div>
+        <div class="log-item-meta">${escapeHTML(d.date)}</div>
         <div class="log-item-stats" style="margin-top:4px;">
           <span class="chip chip-cyan">体重 ${d.weight}kg</span>
           <span class="chip chip-green">体脂肪 ${d.fat}%</span>
           <span class="chip chip-purple">筋量 ${d.muscle}kg</span>
         </div>
-        ${d.note?`<div style="font-size:0.72rem;color:var(--text-3);margin-top:4px;">${d.note}</div>`:''}
+        ${d.note?`<div style="font-size:0.72rem;color:var(--text-3);margin-top:4px;">${escapeHTML(d.note)}</div>`:''}
       </div>
       <button class="del-btn" data-id="${d.id}" aria-label="削除">
         <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
@@ -1072,10 +1371,12 @@ function updateInBodyLatest() {
     qs('#val-inbody-weight').textContent = latest.weight;
     qs('#val-inbody-fat').textContent    = latest.fat;
     qs('#val-inbody-muscle').textContent = latest.muscle;
+    const lbmVal = calcLBM(latest.weight, latest.fat);
+    qs('#val-inbody-lbm').textContent    = lbmVal ? lbmVal.toFixed(1) : '—';
     qs('#inbody-latest-date').textContent= latest.date;
     qs('#dash-inbody-sub').textContent   = `最新: ${latest.date} / ${latest.weight}kg`;
   } else {
-    ['#val-inbody-weight','#val-inbody-fat','#val-inbody-muscle'].forEach(s=>qs(s).textContent='—');
+    ['#val-inbody-weight','#val-inbody-fat','#val-inbody-muscle','#val-inbody-lbm'].forEach(s=>qs(s).textContent='—');
     qs('#inbody-latest-date').textContent = '未測定';
     qs('#dash-inbody-sub').textContent    = '最新: 未登録';
   }
@@ -1111,6 +1412,28 @@ function updateInBodyLatest() {
   } else {
     diffEl.textContent = '— kg';
     diffEl.style.color = 'var(--cyan)';
+  }
+
+  // 機能5: 目標体脂肪率予測
+  const targetFat = (state.profile && state.profile.targetFat) ? state.profile.targetFat : 15;
+  const predRes = predictTargetDate(state.inbody, targetFat);
+  const predBody = qs('#target-fat-pred-body');
+  const predChip = qs('#target-fat-status-chip');
+  if (predBody && predChip) {
+    predBody.textContent = escapeHTML(predRes.message);
+    if (predRes.status === 'ok') {
+      predChip.textContent = `${predRes.estimatedWeeks}週後達成`;
+      predChip.className = 'chip chip-green';
+    } else if (predRes.status === 'achieved') {
+      predChip.textContent = '達成済み！';
+      predChip.className = 'chip chip-cyan';
+    } else if (predRes.status === 'stagnant_or_gaining') {
+      predChip.textContent = '停滞/増加中';
+      predChip.className = 'chip chip-amber';
+    } else {
+      predChip.textContent = '蓄積中';
+      predChip.className = 'chip chip-orange';
+    }
   }
 }
 
@@ -1183,16 +1506,17 @@ function showCalendarDayDetail(dateStr) {
     <div class="cal-detail-section-title" style="color:var(--cyan);">🏋️ 運動・トレーニング (${workouts.length}件)</div>`;
   if (workouts.length) {
     html += workouts.map(w => {
+      const exEsc = escapeHTML(w.exercise);
       if (w.isCardio) {
         return `
           <div style="font-size:0.8rem;margin-bottom:4px;">
-            <strong>🏃 ${w.exercise}</strong> — <span class="chip chip-amber">傾斜${w.incline}%</span> <span class="chip chip-cyan">${w.speed}km/h</span> <span class="chip chip-green">${w.time}分</span> <span class="chip chip-orange">${w.calories}kcal</span>
+            <strong>🏃 ${exEsc}</strong> — <span class="chip chip-amber">傾斜${w.incline}%</span> <span class="chip chip-cyan">${w.speed}km/h</span> <span class="chip chip-green">${w.time}分</span> <span class="chip chip-orange">${w.calories}kcal</span>
           </div>
         `;
       }
       return `
         <div style="font-size:0.8rem;margin-bottom:4px;">
-          <strong>🏋️ ${w.exercise}</strong> — <span class="chip chip-cyan">${w.weight}kg × ${w.reps}r × ${w.sets}s</span>
+          <strong>🏋️ ${exEsc}</strong> — <span class="chip chip-cyan">${w.weight > 0 ? w.weight + 'kg' : (w.equip === '自重' ? '自重' : '0kg')} × ${w.reps}r × ${w.sets}s</span>
         </div>
       `;
     }).join('');
@@ -1210,7 +1534,7 @@ function showCalendarDayDetail(dateStr) {
     </div>`;
     html += meals.map(m => `
       <div style="font-size:0.78rem;color:var(--text-2);margin-bottom:2px;">
-        • [${m.category||'食事'}] ${m.name} (${Math.round(m.cal)}kcal)
+        • [${escapeHTML(m.category||'食事')}] ${escapeHTML(m.name)} (${Math.round(m.cal)}kcal)
       </div>
     `).join('');
   } else {
@@ -1312,6 +1636,7 @@ function updateDashboard() {
   qs('#hero-date').textContent = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}（${days[d.getDay()]}）`;
   const ms = new Date();
   qs('#meal-date-chip').textContent = `${ms.getMonth()+1}/${ms.getDate()}`;
+  updateWeeklyPfcSummary();
 }
 
 // ─── Analytics Charts ────────────────────────────────────────
@@ -1352,6 +1677,7 @@ function renderBodyChart() {
       {label:'体重(kg)',data:sorted.map(d=>d.weight),borderColor:'#38bdf8',backgroundColor:'rgba(56,189,248,0.08)',tension:0.4,pointRadius:4},
       {label:'骨格筋量(kg)',data:sorted.map(d=>d.muscle),borderColor:'#a855f7',backgroundColor:'rgba(168,85,247,0.08)',tension:0.4,pointRadius:4},
       {label:'体脂肪率(%)',data:sorted.map(d=>d.fat),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.08)',tension:0.4,pointRadius:4},
+      {label:'LBM除脂肪(kg)',data:sorted.map(d=>calcLBM(d.weight, d.fat)),borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.08)',tension:0.4,pointRadius:4}
     ]
   },options:{...CHART_BASE}});
 }
@@ -1362,6 +1688,12 @@ function renderWorkoutChart(exercise) {
   if (chartWorkout) chartWorkout.destroy();
 
   const isCardio = records.length > 0 && records[0].isCardio;
+  const plateauBadge = qs('#plateau-alert-badge');
+  if (plateauBadge) {
+    const isPlateau = !isCardio && detectPlateau(records);
+    if (isPlateau) plateauBadge.classList.remove('hidden');
+    else plateauBadge.classList.add('hidden');
+  }
 
   if (isCardio) {
     chartWorkout=new Chart(ctx,{type:'bar',data:{
@@ -1435,18 +1767,36 @@ function exportJSON() {
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`fitpulse_backup_${todayKey()}.json`; a.click(); URL.revokeObjectURL(a.href);
   toast('バックアップをダウンロードしました','success');
 }
+function validateImportData(d) {
+  if (!d || typeof d !== 'object') return false;
+  if (d.workouts && !Array.isArray(d.workouts)) return false;
+  if (d.meals && !Array.isArray(d.meals)) return false;
+  if (d.inbody && !Array.isArray(d.inbody)) return false;
+  if (d.customFoods && !Array.isArray(d.customFoods)) return false;
+  if (d.goals && typeof d.goals !== 'object') return false;
+  if (d.profile && typeof d.profile !== 'object') return false;
+  return true;
+}
+
 function importJSON(file) {
   if (!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
+  const reader = new FileReader();
+  reader.onload = e => {
     try {
-      const d=JSON.parse(e.target.result);
-      if (d.workouts) state.workouts=d.workouts; if (d.meals) state.meals=d.meals;
-      if (d.inbody) state.inbody=d.inbody; if (d.goals) Object.assign(state.goals,d.goals);
-      if (d.profile) state.profile=d.profile; if (d.customEx) state.customEx=d.customEx;
-      if (d.customFoods) state.customFoods=d.customFoods;
-      saveAll(); refreshAll(); toast('バックアップから復元しました','success');
-    } catch { toast('JSONファイルが無効です','error'); }
+      const d = JSON.parse(e.target.result);
+      if (!validateImportData(d)) {
+        toast('バックアップデータの形式が正しくありません', 'error');
+        return;
+      }
+      if (Array.isArray(d.workouts)) state.workouts = d.workouts;
+      if (Array.isArray(d.meals)) state.meals = d.meals;
+      if (Array.isArray(d.inbody)) state.inbody = d.inbody;
+      if (d.goals && typeof d.goals === 'object') Object.assign(state.goals, d.goals);
+      if (d.profile && typeof d.profile === 'object') state.profile = d.profile;
+      if (d.customEx && typeof d.customEx === 'object') state.customEx = d.customEx;
+      if (Array.isArray(d.customFoods)) state.customFoods = d.customFoods;
+      saveAll(); refreshAll(); toast('バックアップから復元しました ✓', 'success');
+    } catch { toast('JSONファイルが無効です', 'error'); }
   };
   reader.readAsText(file);
 }
@@ -1589,9 +1939,10 @@ function bindEvents() {
     const date=qs('#workout-date-input').value || todayKey();
 
     if (state.selectedEquip === '有酸素') {
-      const incline = parseFloat(qs('#cardio-incline').value) || 0;
-      const speed   = parseFloat(qs('#cardio-speed').value)   || 0;
-      const time    = parseInt(qs('#cardio-time').value)       || 0;
+      // parseValidNumber で負値・異常値ガード (updateCardioCalorie と同一範囲)
+      const incline = parseValidNumber(qs('#cardio-incline').value, 0, 0, 40);
+      const speed   = parseValidNumber(qs('#cardio-speed').value,   0, 0, 50);
+      const time    = parseValidNumber(qs('#cardio-time').value,    0, 0, 1440);
 
       if (!ex || speed <= 0 || time <= 0) {
         toast('速度 (km/h) と 時間 (分) を入力してください','warning');
@@ -1599,10 +1950,10 @@ function bindEvents() {
       }
 
       const caloriesStr = qs('#val-cardio-cal').textContent;
-      const calories = parseInt(caloriesStr) || 0;
+      const calories = parseValidNumber(caloriesStr, 0, 0, 99999);
 
       state.workouts.push({
-        id: Date.now(), date,
+        id: generateId(), date,
         equip: '有酸素', exercise: ex, isCardio: true,
         incline, speed, time, calories, notes: n
       });
@@ -1629,7 +1980,7 @@ function bindEvents() {
       }
 
       state.workouts.push({
-        id: Date.now(), date,
+        id: generateId(), date,
         equip: state.selectedEquip, exercise: ex, isCardio: false,
         weight: w, reps: r, sets: s, notes: n, oneRM: calcOneRM(w, r)
       });
@@ -1718,7 +2069,7 @@ function bindEvents() {
     const muscle=parseFloat(qs('#modal-inbody-muscle').value)||0;
     const note=qs('#modal-inbody-note').value.trim();
     if (!weight) { toast('体重を入力してください','warning'); return; }
-    state.inbody.push({id:Date.now(),date,weight,fat,muscle,note});
+    state.inbody.push({id:generateId(),date,weight,fat,muscle,note});
     saveAll(); renderInBodyHistory(); updateInBodyLatest(); updateDashboard();
     closeModal('modal-inbody'); toast('体組成データを保存しました ✓','success');
   });
@@ -1727,6 +2078,7 @@ function bindEvents() {
 // ─── Init ────────────────────────────────────────────────────
 function init() {
   loadAll();
+  buildFoodIndex();
   lucide.createIcons();
   buildCategoryTabs();
   renderTimer();
